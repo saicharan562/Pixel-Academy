@@ -22,6 +22,10 @@ import { contractsRouter } from './modules/contracts/contracts-routes.js';
 import { attendanceRouter } from './modules/attendance/attendance-routes.js';
 import { leavesRouter } from './modules/leaves/leaves-routes.js';
 import { timesheetsRouter } from './modules/timesheets/timesheets-routes.js';
+import { ticketsRouter } from './modules/tickets/tickets-routes.js';
+import { kbRouter } from './modules/kb/kb-routes.js';
+import { dealsRouter } from './modules/deals/deals-routes.js';
+import { reportsRouter } from './modules/reports/reports-routes.js';
 
 /**
  * Express application assembly. Order matters:
@@ -59,6 +63,10 @@ export function createApp(): Express {
   app.use('/attendance', attendanceRouter);
   app.use('/leaves', leavesRouter);
   app.use('/timesheets', timesheetsRouter);
+  app.use('/tickets', ticketsRouter);
+  app.use('/kb', kbRouter);
+  app.use('/deals', dealsRouter);
+  app.use('/reports', reportsRouter);
 
   // 404 for unmatched routes → uniform contract via the error handler.
   app.use((req, _res, next) => {
