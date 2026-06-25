@@ -112,96 +112,12 @@ async function main() {
     console.log(`✅ Seeded admin: ${adminEmail} / ${adminPassword} (change this!)`);
   }
 
-  // 7. Demo data (idempotent) ----------------------------------------------
-  // A realistic Indian agency slice so a fresh clone is demo-ready end-to-end.
-  const demoMarker = 'Stablegains Financial Services LLP';
-  const demoExists = await prisma.client.findFirst({ where: { legalName: demoMarker } });
-  if (!demoExists) {
-    const demoHash = await argon2.hash('Demo!2026pixel', { type: argon2.argon2id });
-    const managerRoleId = roleByName.get('Manager')!;
-    const staffRoleId = roleByName.get('Staff')!;
-    const clientRoleId = roleByName.get('Client')!;
-
-    const managerId = uuidv7();
-    const staffId = uuidv7();
-    await prisma.user.create({ data: { id: managerId, email: 'priya@pixelacademy.local', fullName: 'Priya Nair', roleId: managerRoleId, status: 'active', passwordHash: demoHash, phone: '+919900000001' } });
-    await prisma.user.create({ data: { id: staffId, email: 'rahul@pixelacademy.local', fullName: 'Rahul Verma', roleId: staffRoleId, status: 'active', passwordHash: demoHash, phone: '+919900000002' } });
-
-    // Clients: one intra-state (37 = AP, same as supplier) and one inter-state (29 = KA).
-    const client1Id = uuidv7();
-    await prisma.client.create({
-      data: {
-        id: client1Id, legalName: demoMarker, displayName: 'Stablegains', gstin: '37AABCS1234E1Z9', stateCode: '37',
-        billingAddress: { line1: '4-12 Fintech Park', city: 'Vijayawada', state: 'Andhra Pradesh', pincode: '520010' },
-        email: 'ops@stablegains.in', phone: '+919812345678', ownerUserId: managerId, status: 'active',
-      },
-    });
-    const client2Id = uuidv7();
-    await prisma.client.create({
-      data: {
-        id: client2Id, legalName: 'HabbFit Wellness Pvt Ltd', displayName: 'HabbFit', gstin: '29AAFCH9876K1Z2', stateCode: '29',
-        billingAddress: { line1: '88 Indiranagar', city: 'Bengaluru', state: 'Karnataka', pincode: '560038' },
-        email: 'team@habbfit.com', phone: '+919845612300', ownerUserId: managerId, status: 'active',
-      },
-    });
-    // A client-portal login for Stablegains.
-    await prisma.user.create({ data: { id: uuidv7(), email: 'komal@stablegains.in', fullName: 'Komal Krishna', roleId: clientRoleId, clientId: client1Id, status: 'active', passwordHash: demoHash } });
-
-    // Webinar delivery project.
-    const projectId = uuidv7();
-    await prisma.project.create({
-      data: {
-        id: projectId, clientId: client1Id, name: 'Home Loan EMI Freedom — Webinar Funnel', code: 'STG-WEB-01',
-        status: 'active', managerId, budgetInr: '250000.00', startDate: new Date('2026-06-01'),
-        members: { create: [{ userId: staffId, roleInProject: 'Producer' }] },
-      },
-    });
-    for (const [i, t] of [
-      { title: 'Build registration landing page', status: 'in_progress', priority: 'high' },
-      { title: 'Set up webinar email sequence (7 mails)', status: 'todo', priority: 'medium' },
-      { title: 'Design slide deck + offer stack', status: 'review', priority: 'high' },
-    ].entries()) {
-      await prisma.task.create({ data: { id: uuidv7(), projectId, title: t.title, status: t.status, priority: t.priority, assigneeId: staffId, dueDate: new Date(`2026-06-${15 + i}`) } });
-    }
-
-    // Issued GST invoice (intra-state 18% → CGST+SGST) with a partial payment.
-    const invoiceId = uuidv7();
-    await prisma.invoice.create({
-      data: {
-        id: invoiceId, invoiceNo: 'PA/2026-27/0001', clientId: client1Id, projectId,
-        issueDate: new Date('2026-06-05'), dueDate: new Date('2026-06-20'), placeOfSupply: '37', supplyType: 'intra_state',
-        subtotalInr: '200000.00', cgstInr: '18000.00', sgstInr: '18000.00', igstInr: '0.00', totalInr: '236000.00',
-        status: 'partially_paid', notes: 'Phase 1 — funnel build & first cohort.',
-        lineItems: { create: [
-          { id: uuidv7(), description: 'Webinar funnel build (landing, emails, automation)', hsnSac: '998314', quantity: '1', unitPriceInr: '200000.00', taxableValueInr: '200000.00', gstRate: '18', cgstInr: '18000.00', sgstInr: '18000.00', igstInr: '0.00' },
-        ] },
-        payments: { create: [{ id: uuidv7(), amountInr: '118000.00', paidAt: new Date('2026-06-08'), method: 'upi', reference: 'UPI/AX12CD34' }] },
-      },
-    });
-
-    // A published KB article so the AI assistant has something to ground on.
-    await prisma.kbDocument.create({
-      data: {
-        id: uuidv7(), title: 'How to set up a high-converting webinar funnel', category: 'Playbooks', status: 'draft', audience: 'internal',
-        bodyMd: 'A webinar funnel has three stages: registration, show-up, and offer. Drive registrations with a benefit-led landing page and WhatsApp reminders. Maximise show-up with a 3-touch reminder sequence (24h, 1h, live). Convert with a clear offer stack and a deadline. Track registration rate, show-up rate, and offer conversion as the three core metrics.',
-      },
-    });
-
-    // An open support ticket.
-    await prisma.ticket.create({
-      data: {
-        id: uuidv7(), ticketNo: 'TKT-00001', clientId: client1Id, createdBy: managerId, assigneeId: staffId,
-        subject: 'WhatsApp reminders not sending for Cohort 2', priority: 'high', status: 'open',
-        firstResponseDueAt: new Date('2026-06-25T12:00:00Z'), resolutionDueAt: new Date('2026-06-26T12:00:00Z'),
-      },
-    });
-
-    // eslint-disable-next-line no-console
-    console.log('✅ Seeded demo data (2 clients, project, invoice, KB, ticket). Demo login pw: Demo!2026pixel');
-  }
+  // NOTE: No demo/sample data. Every content section (Staff, Clients, Projects, Tasks,
+  // Invoices, KB, Tickets, …) starts EMPTY — the seed provisions only the RBAC backbone,
+  // baseline config (leave types, SLA policies), and one bootstrap Admin so you can log in.
 
   // eslint-disable-next-line no-console
-  console.log('✅ Seed complete.');
+  console.log('✅ Seed complete (empty sections — only RBAC, config defaults, and admin login).');
 }
 
 main()
