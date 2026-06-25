@@ -19,6 +19,9 @@ import { invoicesRouter } from './modules/invoices/invoices-routes.js';
 import { notificationsRouter } from './modules/notifications/notifications-routes.js';
 import { expensesRouter } from './modules/expenses/expenses-routes.js';
 import { contractsRouter } from './modules/contracts/contracts-routes.js';
+import { attendanceRouter } from './modules/attendance/attendance-routes.js';
+import { leavesRouter } from './modules/leaves/leaves-routes.js';
+import { timesheetsRouter } from './modules/timesheets/timesheets-routes.js';
 
 /**
  * Express application assembly. Order matters:
@@ -53,6 +56,9 @@ export function createApp(): Express {
   app.use('/notifications', notificationsRouter);
   app.use('/expenses', expensesRouter);
   app.use('/contracts', contractsRouter);
+  app.use('/attendance', attendanceRouter);
+  app.use('/leaves', leavesRouter);
+  app.use('/timesheets', timesheetsRouter);
 
   // 404 for unmatched routes → uniform contract via the error handler.
   app.use((req, _res, next) => {
