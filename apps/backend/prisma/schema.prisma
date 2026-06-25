@@ -93,6 +93,7 @@ model User {
   notifications     Notification[]
   auditLogs         AuditLog[]
   aiLogs            AiInteractionLog[]
+  salaryRecords     SalaryRecord[]
 
   @@index([roleId], name: "idx_users_role_id")
   @@index([clientId], name: "idx_users_client_id")
@@ -239,6 +240,7 @@ model Client {
   invoices    Invoice[]
   contracts   Contract[]
   tickets     Ticket[]
+  workItems   WorkItem[]
 
   @@index([ownerUserId], name: "idx_clients_owner")
   @@index([status], name: "idx_clients_status")
@@ -700,4 +702,66 @@ model AiInteractionLog {
   @@index([userId], name: "idx_ai_user")
   @@index([createdAt], name: "idx_ai_created")
   @@map("ai_interaction_logs")
+}
+
+// ───────────────────────── Agency ops (from the ops tracker) ─────────────────────────
+
+/// Service price catalogue — the agency's rate card (Reels, Long-form, Shoots, etc.).
+model Service {
+  id          String    @id @db.Uuid
+  name        String
+  priceMinInr Decimal?  @map("price_min_inr") @db.Decimal(14, 2)
+  priceMaxInr Decimal?  @map("price_max_inr") @db.Decimal(14, 2)
+  unit        String? // billing unit: "Per Reel" | "Per Video" | "Monthly" | …
+  notes       String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  @@map("services")
+}
+
+/// Work / billing tracker — the agency's delivery items with status + billing details.
+model WorkItem {
+  id          String    @id @db.Uuid
+  category    String?
+  title       String
+  status      String // not_started | in_progress | completed
+  notes       String?
+  priceInr    Decimal?  @map("price_inr") @db.Decimal(14, 2)
+  quantity    String?   @map("quantity") // free-form in source ("13", "10/15", "no")
+  billingType String?   @map("billing_type")
+  clientId    String?   @map("client_id") @db.Uuid
+  paid        Boolean   @default(false)
+  advanceNote String?   @map("advance_note")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  client Client? @relation(fields: [clientId], references: [id])
+
+  @@index([category], name: "idx_workitem_category")
+  @@index([status], name: "idx_workitem_status")
+  @@map("work_items")
+}
+
+/// Monthly payroll record. Net = salary + bonus + incentive − deduction.
+model SalaryRecord {
+  id           String    @id @db.Uuid
+  month        String // "2026-06"
+  userId       String    @map("user_id") @db.Uuid
+  salaryInr    Decimal   @map("salary_inr") @db.Decimal(14, 2)
+  bonusInr     Decimal   @default(0) @map("bonus_inr") @db.Decimal(14, 2)
+  incentiveInr Decimal   @default(0) @map("incentive_inr") @db.Decimal(14, 2)
+  deductionInr Decimal   @default(0) @map("deduction_inr") @db.Decimal(14, 2)
+  netSalaryInr Decimal   @map("net_salary_inr") @db.Decimal(14, 2)
+  paidDate     DateTime? @map("paid_date") @db.Date
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month], name: "uq_salary_user_month")
+  @@map("salary_records")
 }
