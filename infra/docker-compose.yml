@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: pixel_postgres
+    environment:
+      POSTGRES_USER: pixel
+      POSTGRES_PASSWORD: pixel_dev_pw
+      POSTGRES_DB: pixel_academy
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-extensions.sql:/docker-entrypoint-initdb.d/init-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pixel -d pixel_academy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: pixel_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # S3-compatible object storage for local dev (India region == any in dev).
+  minio:
+    image: minio/minio:latest
+    container_name: pixel_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: pixel_minio
+      MINIO_ROOT_PASSWORD: pixel_minio_dev_pw
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Dev SMTP catcher — UI at http://localhost:8025, SMTP on :1025.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: pixel_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

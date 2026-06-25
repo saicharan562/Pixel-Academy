@@ -1,0 +1,56 @@
+import { lazy, Suspense } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import { PERMISSIONS } from '@pixel/shared';
+import { AppShell } from './components/AppShell.js';
+import { ProtectedRoute } from './components/ProtectedRoute.js';
+import { ThemeBackground } from './theme/ThemeBackground.js';
+import { LoginPage } from './pages/LoginPage.js';
+import { PlaceholderPage } from './pages/PlaceholderPage.js';
+
+// Route-level code-splitting: each screen is its own chunk so the initial bundle
+// stays lean and the heavy three.js/landing code never loads inside the app.
+const LandingPage = lazy(() => import('./pages/LandingPage.js').then((m) => ({ default: m.LandingPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage.js').then((m) => ({ default: m.DashboardPage })));
+const ClientsPage = lazy(() => import('./pages/ClientsPage.js').then((m) => ({ default: m.ClientsPage })));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage.js').then((m) => ({ default: m.ProjectsPage })));
+const TasksPage = lazy(() => import('./pages/TasksPage.js').then((m) => ({ default: m.TasksPage })));
+const StylePage = lazy(() => import('./pages/StylePage.js').then((m) => ({ default: m.StylePage })));
+
+export function App() {
+  return (
+    <>
+      <ThemeBackground />
+      <Routes>
+        <Route
+          path="/welcome"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-bg" />}>
+              <LandingPage />
+            </Suspense>
+          }
+        />
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="clients" element={<ProtectedRoute permission={PERMISSIONS.CLIENT_VIEW}><ClientsPage /></ProtectedRoute>} />
+          <Route path="projects" element={<ProtectedRoute permission={PERMISSIONS.PROJECT_VIEW}><ProjectsPage /></ProtectedRoute>} />
+          <Route path="tasks" element={<ProtectedRoute permission={PERMISSIONS.TASK_VIEW}><TasksPage /></ProtectedRoute>} />
+          <Route path="attendance" element={<ProtectedRoute permission={PERMISSIONS.ATTENDANCE_VIEW}><PlaceholderPage title="Attendance" /></ProtectedRoute>} />
+          <Route path="leaves" element={<ProtectedRoute permission={PERMISSIONS.LEAVE_VIEW}><PlaceholderPage title="Leaves" /></ProtectedRoute>} />
+          <Route path="invoices" element={<ProtectedRoute permission={PERMISSIONS.INVOICE_VIEW}><PlaceholderPage title="Invoices" /></ProtectedRoute>} />
+          <Route path="users" element={<ProtectedRoute permission={PERMISSIONS.USER_VIEW}><PlaceholderPage title="Users" /></ProtectedRoute>} />
+          <Route path="style" element={<StylePage />} />
+        </Route>
+
+        <Route path="*" element={<PlaceholderPage title="Not found" />} />
+      </Routes>
+    </>
+  );
+}

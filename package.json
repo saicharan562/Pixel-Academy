@@ -1,0 +1,27 @@
+{
+  "name": "pixel-academy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pixel Academy — Internal Management Platform (monorepo)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w @pixel/shared",
+    "dev:backend": "npm run dev -w @pixel/backend",
+    "dev:web": "npm run dev -w @pixel/web",
+    "db:migrate": "npm run db:migrate -w @pixel/backend",
+    "db:seed": "npm run db:seed -w @pixel/backend",
+    "test": "npm run test -w @pixel/backend",
+    "lint": "eslint . --ext .ts,.tsx",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

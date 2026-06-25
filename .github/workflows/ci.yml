@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: pixel
+          POSTGRES_PASSWORD: pixel_dev_pw
+          POSTGRES_DB: pixel_academy
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pixel -d pixel_academy"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://pixel:pixel_dev_pw@localhost:5432/pixel_academy?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci_access_secret_at_least_32_characters_long
+      JWT_REFRESH_SECRET: ci_refresh_secret_at_least_32_characters_long
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Enable pgvector + citext extensions
+        run: |
+          PGPASSWORD=pixel_dev_pw psql -h localhost -U pixel -d pixel_academy \
+            -c "CREATE EXTENSION IF NOT EXISTS citext; CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+      - run: npm ci
+      - run: npm run build:shared
+
+      - name: Prisma generate + migrate
+        working-directory: apps/backend
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy || npx prisma migrate dev --name ci_init
+
+      - name: Type-check backend
+        working-directory: apps/backend
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: Unit tests
+        run: npm test
