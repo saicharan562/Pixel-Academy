@@ -126,90 +126,93 @@ async function main() {
     await prisma.user.create({ data: { id: shivaId, email: 'shiva@pixelacademy.local', fullName: 'Shiva (Editor / Graphic Designer)', roleId: staffRoleId, status: 'active', passwordHash: opsHash } });
     await prisma.user.create({ data: { id: sowmyaId, email: 'sowmya@pixelacademy.local', fullName: 'Sowmya (Operations Team)', roleId: staffRoleId, status: 'active', passwordHash: opsHash } });
 
-    // 7b. Client (from the hiring note) -------------------------------------
+    // 7b. Clients (each client tab in the sheet → a Client) ----------------
+    const addr = (city: string) => ({ line1: '—', city, state: 'India', pincode: '000000' });
+    const maniId = uuidv7();
+    const aravindId = uuidv7();
+    const komalId = uuidv7();
     const kitchenId = uuidv7();
+    await prisma.client.create({ data: { id: maniId, legalName: 'Dr. Mani Pavitra', displayName: 'Dr. Mani Pavitra', stateCode: '37', billingAddress: addr('—'), status: 'active' } });
+    await prisma.client.create({ data: { id: aravindId, legalName: 'Dr. Aravind', displayName: 'Dr. Aravind', stateCode: '37', billingAddress: addr('—'), status: 'active' } });
+    await prisma.client.create({ data: { id: komalId, legalName: 'Komal Krishna', displayName: 'Komal (Stablegains)', stateCode: '37', billingAddress: addr('—'), status: 'active' } });
     await prisma.client.create({
       data: {
         id: kitchenId, legalName: "Mulpuri's Kitchen", displayName: "Mulpuri's Kitchen", stateCode: '37',
-        billingAddress: { line1: '—', city: '—', state: 'Andhra Pradesh', pincode: '520001' },
-        phone: '9908128700', status: 'active',
-        contacts: { create: [{ id: uuidv7(), name: 'Usha', phone: '9908128700', isPrimary: true }] },
+        billingAddress: addr('—'), phone: '9908128700', status: 'prospect',
+        contacts: { create: [{ id: uuidv7(), name: 'Usha (manager)', phone: '9908128700', isPrimary: true }] },
       },
     });
 
-    // 7c. Service price list (rate card) ------------------------------------
+    // 7c. Service price list — the agency's standard rate card (Dr. Mani tab) -
     const services = [
       { name: 'Reels Editing', min: '800', max: '1000', unit: 'Per Reel' },
       { name: 'Long Form Video Editing', min: '1500', max: null, unit: 'Per Video' },
       { name: 'Ad Video Editing', min: '1500', max: null, unit: 'Per Video' },
       { name: 'Creative Design', min: '200', max: null, unit: 'Per Creative' },
       { name: 'Shoot with Phone', min: '3000', max: null, unit: 'Per Shoot' },
-      { name: 'Shoot with Camera (studio)', min: '5000', max: null, unit: 'Per Shoot' },
-      { name: 'Shoot with Camera (on-site)', min: '8000', max: null, unit: 'Per Visit' },
-      { name: 'Scripting', min: '0', max: null, unit: 'Included' },
-      { name: 'Telecalling', min: '10000', max: null, unit: 'Monthly' },
-      { name: 'Customer Support', min: '12000', max: null, unit: 'Monthly' },
-      { name: 'Email Marketing', min: '500', max: null, unit: 'Per Email' },
+      { name: 'Shoot with Camera', min: '5000', max: null, unit: 'Per Shoot' },
     ];
     for (const s of services) {
       await prisma.service.create({ data: { id: uuidv7(), name: s.name, priceMinInr: s.min, priceMaxInr: s.max, unit: s.unit } });
     }
 
-    // 7d. Work / billing tracker -------------------------------------------
+    // 7d. Work / billing tracker — each tab's items, attached to its client -
     const S = { 'Not Started': 'not_started', Progress: 'in_progress', Completed: 'completed' } as const;
     type Src = keyof typeof S;
-    const work: Array<{ cat?: string; title: string; st: Src; notes?: string; price?: string; qty?: string; bill?: string; adv?: string }> = [
-      // Quick tasks
-      { title: 'Jashan video edit', st: 'Not Started' },
-      { title: 'Mam Ad videos Edit', st: 'Not Started' },
-      { title: 'VCB Reels Edit', st: 'Not Started' },
-      // Video production & Edit
-      { cat: 'Video Production & Edit', title: 'Testimonials cut from zoom videos', st: 'Completed', notes: 'done - 13', qty: '13', bill: 'Monthly' },
-      { cat: 'Video Production & Edit', title: 'Ad Video Editing', st: 'Completed', qty: '25', bill: 'Per Video' },
-      { cat: 'Video Production & Edit', title: 'Testimonial Mashup Edit', st: 'Not Started', bill: 'Project Based' },
-      { cat: 'Video Production & Edit', title: 'Testimonial Separate Edit', st: 'Progress', bill: 'Project Based' },
-      { cat: 'Video Production & Edit', title: 'Winning Ad edit (Changed to DHMP 7 days free)', st: 'Completed', qty: '1' },
-      { cat: 'Video Production & Edit', title: 'WhatsApp Reminders', st: 'Progress', notes: 'yet to get approval', bill: 'Monthly' },
-      { cat: 'Video Production & Edit', title: 'Intro Videos', st: 'Not Started' },
-      // Automations
-      { cat: 'Automations', title: 'Email Broadcast - 7 day DHMP free classes', st: 'Completed', notes: '3 mails sent', qty: '3', bill: 'Monthly' },
-      { cat: 'Automations', title: '7 Day DHMP Workflow Setup', st: 'Not Started', bill: 'One Time' },
-      { cat: 'Automations', title: 'DHMP EMAILS Draft', st: 'Completed', notes: 'Add link here', qty: 'no', bill: 'Per Email' },
-      { cat: 'Automations', title: 'DHMP Leads Automation', st: 'Completed' },
-      { cat: 'Automations', title: '4D HMM Lead Automation', st: 'Completed' },
-      { cat: 'Automations', title: 'Zoom Attendence', st: 'Completed' },
-      // TagMango
-      { cat: 'TagMango', title: 'TagMango Engagement Plan', st: 'Progress', notes: 'content, editing, posting, comment replies', bill: 'Monthly' },
-      { cat: 'TagMango', title: 'Flyer Designs', st: 'Progress', bill: 'Per Design' },
-      { cat: 'TagMango', title: 'Comments Replies', st: 'Progress', bill: 'Per Video' },
-      // Social media
-      { cat: 'Social Media', title: 'TagMango Flyer Design', st: 'Completed', price: '55000', bill: 'Per Design' },
-      { cat: 'Social Media', title: 'Comments Automation', st: 'Completed', bill: 'One Time' },
-      { cat: 'Social Media', title: 'Scripts (Ads/Reels/YouTube)', st: 'Completed', bill: 'Monthly', adv: '10k advance paid May' },
-      { cat: 'Social Media', title: 'Carousel/Flyers Designs', st: 'Completed', qty: '10/15', bill: 'Per Carousel' },
-      { cat: 'Social Media', title: 'Reels Cover Design', st: 'Completed', qty: '15', bill: 'Per Cover' },
-      { cat: 'Social Media', title: 'IG Reels', st: 'Completed', qty: '15', bill: 'Monthly' },
-      { cat: 'Social Media', title: 'IG Stories', st: 'Completed', qty: '31', bill: 'Monthly' },
-      { cat: 'Social Media', title: 'Testimonials reels', st: 'Completed', qty: '7' },
-      { cat: 'Social Media', title: 'YouTube Videos', st: 'Completed', qty: '3/10', bill: 'Monthly' },
-      { cat: 'Social Media', title: 'Strategy Sessions', st: 'Not Started', qty: '4', bill: 'Monthly' },
-      { cat: 'Social Media', title: 'Shoot', st: 'Completed', qty: '1' },
-      { cat: 'Social Media', title: 'AI Videos', st: 'Not Started', bill: 'Per Video' },
-      // Proposal / scope (last tracker)
-      { cat: 'Proposal', title: 'Shoot with Camera', st: 'Not Started', price: '8000', bill: 'Per Visit' },
-      { cat: 'Proposal', title: 'Scripting', st: 'Not Started', price: '0', bill: 'Included' },
-      { cat: 'Proposal', title: 'Reel Editing', st: 'Not Started', notes: '₹800 – ₹1,000', bill: 'Per Reel' },
-      { cat: 'Proposal', title: 'Ad Video Editing', st: 'Not Started', price: '1500', bill: 'Per Video' },
-      { cat: 'Proposal', title: 'Telecalling', st: 'Not Started', price: '10000', bill: 'Monthly', adv: '12000 - June 17th' },
-      { cat: 'Proposal', title: 'Customer Support', st: 'Not Started', price: '12000', bill: 'Monthly' },
-      { cat: 'Proposal', title: 'Email Marketing', st: 'Not Started', price: '500', bill: 'Per Email' },
-      { cat: 'Proposal', title: 'Pain points', st: 'Progress' },
+    const clientOf = { mani: maniId, aravind: aravindId, komal: komalId } as const;
+    type ClientKey = keyof typeof clientOf;
+    const work: Array<{ client: ClientKey; cat?: string; title: string; st: Src; notes?: string; price?: string; qty?: string; bill?: string; adv?: string }> = [
+      // ── Dr. Mani Pavitra ──
+      { client: 'mani', title: 'Jashan video edit', st: 'Not Started' },
+      { client: 'mani', title: 'Mam Ad videos Edit', st: 'Not Started' },
+      { client: 'mani', title: 'VCB Reels Edit', st: 'Not Started' },
+      // ── Dr. Aravind — Video Production & Edit ──
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'Testimonials cut from zoom videos', st: 'Completed', notes: 'done - 13', qty: '13', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'Ad Video Editing', st: 'Completed', qty: '25', bill: 'Per Video' },
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'Testimonial Mashup Edit', st: 'Not Started', bill: 'Project Based' },
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'Testimonial Separate Edit', st: 'Progress', bill: 'Project Based' },
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'Winning Ad edit (Changed to DHMP 7 days free)', st: 'Completed', qty: '1' },
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'WhatsApp Reminders', st: 'Progress', notes: 'yet to get approval', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Video Production & Edit', title: 'Intro Videos', st: 'Not Started' },
+      // ── Dr. Aravind — Automations ──
+      { client: 'aravind', cat: 'Automations', title: 'Email Broadcast - 7 day DHMP free classes', st: 'Completed', notes: '3 mails sent', qty: '3', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Automations', title: '7 Day DHMP Workflow Setup', st: 'Not Started', bill: 'One Time' },
+      { client: 'aravind', cat: 'Automations', title: 'DHMP EMAILS Draft', st: 'Completed', notes: 'Add link here', qty: 'no', bill: 'Per Email' },
+      { client: 'aravind', cat: 'Automations', title: 'DHMP Leads Automation', st: 'Completed' },
+      { client: 'aravind', cat: 'Automations', title: '4D HMM Lead Automation', st: 'Completed' },
+      { client: 'aravind', cat: 'Automations', title: 'Zoom Attendence', st: 'Completed' },
+      // ── Dr. Aravind — TagMango ──
+      { client: 'aravind', cat: 'TagMango', title: 'TagMango Engagement Plan', st: 'Progress', notes: 'content, editing, posting, comment replies', bill: 'Monthly' },
+      { client: 'aravind', cat: 'TagMango', title: 'Flyer Designs', st: 'Progress', bill: 'Per Design' },
+      { client: 'aravind', cat: 'TagMango', title: 'Comments Replies', st: 'Progress', bill: 'Per Video' },
+      // ── Dr. Aravind — Social Media ──
+      { client: 'aravind', cat: 'Social Media', title: 'TagMango Flyer Design', st: 'Completed', price: '55000', bill: 'Per Design' },
+      { client: 'aravind', cat: 'Social Media', title: 'Comments Automation', st: 'Completed', bill: 'One Time' },
+      { client: 'aravind', cat: 'Social Media', title: 'Scripts (Ads/Reels/YouTube)', st: 'Completed', bill: 'Monthly', adv: '10k advance paid May' },
+      { client: 'aravind', cat: 'Social Media', title: 'Carousel/Flyers Designs', st: 'Completed', qty: '10/15', bill: 'Per Carousel' },
+      { client: 'aravind', cat: 'Social Media', title: 'Reels Cover Design', st: 'Completed', qty: '15', bill: 'Per Cover' },
+      { client: 'aravind', cat: 'Social Media', title: 'IG Reels', st: 'Completed', qty: '15', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Social Media', title: 'IG Stories', st: 'Completed', qty: '31', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Social Media', title: 'Testimonials reels', st: 'Completed', qty: '7' },
+      { client: 'aravind', cat: 'Social Media', title: 'YouTube Videos', st: 'Completed', qty: '3/10', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Social Media', title: 'Strategy Sessions', st: 'Not Started', qty: '4', bill: 'Monthly' },
+      { client: 'aravind', cat: 'Social Media', title: 'Shoot', st: 'Completed', qty: '1' },
+      { client: 'aravind', cat: 'Social Media', title: 'AI Videos', st: 'Not Started', bill: 'Per Video' },
+      // ── Komal (Stablegains) — scope / proposal ──
+      { client: 'komal', title: 'Shoot with Camera', st: 'Not Started', price: '8000', bill: 'Per Visit' },
+      { client: 'komal', title: 'Scripting', st: 'Not Started', price: '0', bill: 'Included' },
+      { client: 'komal', title: 'Reel Editing', st: 'Not Started', notes: '₹800 – ₹1,000', bill: 'Per Reel' },
+      { client: 'komal', title: 'Ad Video Editing', st: 'Not Started', price: '1500', bill: 'Per Video' },
+      { client: 'komal', title: 'Telecalling', st: 'Not Started', price: '10000', bill: 'Monthly', adv: '12000 - June 17th' },
+      { client: 'komal', title: 'Customer Support', st: 'Not Started', price: '12000', bill: 'Monthly' },
+      { client: 'komal', title: 'Email Marketing', st: 'Not Started', price: '500', bill: 'Per Email' },
+      { client: 'komal', title: 'Pain points', st: 'Progress' },
     ];
     for (const w of work) {
       await prisma.workItem.create({
         data: {
-          id: uuidv7(), category: w.cat ?? null, title: w.title, status: S[w.st], notes: w.notes ?? null,
-          priceInr: w.price ?? null, quantity: w.qty ?? null, billingType: w.bill ?? null, advanceNote: w.adv ?? null,
+          id: uuidv7(), clientId: clientOf[w.client], category: w.cat ?? null, title: w.title, status: S[w.st],
+          notes: w.notes ?? null, priceInr: w.price ?? null, quantity: w.qty ?? null, billingType: w.bill ?? null, advanceNote: w.adv ?? null,
         },
       });
     }
@@ -228,7 +231,7 @@ async function main() {
     await prisma.salaryRecord.create({ data: { id: uuidv7(), month: '2026-06', userId: sowmyaId, salaryInr: '15000', netSalaryInr: '15000' } });
 
     // eslint-disable-next-line no-console
-    console.log('✅ Seeded ops data: 2 staff, 1 client, 11 services, 38 work items, 3 tool costs, 2 salaries. Staff pw: Pixel@2026');
+    console.log('✅ Seeded ops data: 2 staff, 4 clients, 6 services, 38 work items, 3 tool costs, 2 salaries. Staff pw: Pixel@2026');
   }
 
   // eslint-disable-next-line no-console
