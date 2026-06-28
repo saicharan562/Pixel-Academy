@@ -20,6 +20,7 @@ const LeavesPage = lazy(() => import('./pages/LeavesPage.js').then((m) => ({ def
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage.js').then((m) => ({ default: m.InvoicesPage })));
 const UsersPage = lazy(() => import('./pages/UsersPage.js').then((m) => ({ default: m.UsersPage })));
 const TicketsPage = lazy(() => import('./pages/TicketsPage.js').then((m) => ({ default: m.TicketsPage })));
+const DealsPage = lazy(() => import('./pages/DealsPage.js').then((m) => ({ default: m.DealsPage })));
 const StylePage = lazy(() => import('./pages/StylePage.js').then((m) => ({ default: m.StylePage })));
 
 export function App() {
@@ -46,6 +47,7 @@ export function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="clients" element={<ProtectedRoute permission={PERMISSIONS.CLIENT_VIEW}><ClientsPage /></ProtectedRoute>} />
+          <Route path="deals" element={<ProtectedRoute permission={PERMISSIONS.DEAL_VIEW}><DealsPage /></ProtectedRoute>} />
           <Route path="projects" element={<ProtectedRoute permission={PERMISSIONS.PROJECT_VIEW}><ProjectsPage /></ProtectedRoute>} />
           <Route path="tasks" element={<ProtectedRoute permission={PERMISSIONS.TASK_VIEW}><TasksPage /></ProtectedRoute>} />
           <Route path="timesheets" element={<ProtectedRoute permission={PERMISSIONS.TIMESHEET_VIEW}><TimesheetsPage /></ProtectedRoute>} />
