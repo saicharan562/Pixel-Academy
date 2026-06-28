@@ -23,6 +23,7 @@ const TicketsPage = lazy(() => import('./pages/TicketsPage.js').then((m) => ({ d
 const DealsPage = lazy(() => import('./pages/DealsPage.js').then((m) => ({ default: m.DealsPage })));
 const ExpensesPage = lazy(() => import('./pages/ExpensesPage.js').then((m) => ({ default: m.ExpensesPage })));
 const ContractsPage = lazy(() => import('./pages/ContractsPage.js').then((m) => ({ default: m.ContractsPage })));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage.js').then((m) => ({ default: m.NotificationsPage })));
 const StylePage = lazy(() => import('./pages/StylePage.js').then((m) => ({ default: m.StylePage })));
 
 export function App() {
@@ -58,6 +59,7 @@ export function App() {
           <Route path="invoices" element={<ProtectedRoute permission={PERMISSIONS.INVOICE_VIEW}><InvoicesPage /></ProtectedRoute>} />
           <Route path="expenses" element={<ProtectedRoute permission={PERMISSIONS.EXPENSE_VIEW}><ExpensesPage /></ProtectedRoute>} />
           <Route path="contracts" element={<ProtectedRoute permission={PERMISSIONS.CONTRACT_VIEW}><ContractsPage /></ProtectedRoute>} />
+          <Route path="notifications" element={<ProtectedRoute permission={PERMISSIONS.NOTIFICATION_VIEW}><NotificationsPage /></ProtectedRoute>} />
           <Route path="tickets" element={<ProtectedRoute permission={PERMISSIONS.TICKET_VIEW}><TicketsPage /></ProtectedRoute>} />
           <Route path="users" element={<ProtectedRoute permission={PERMISSIONS.USER_VIEW}><UsersPage /></ProtectedRoute>} />
           <Route path="style" element={<StylePage />} />

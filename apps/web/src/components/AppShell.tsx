@@ -2,13 +2,14 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Bell, ChevronsLeft, Command as CommandIcon, LogOut, PanelLeft, Search,
+  ChevronsLeft, Command as CommandIcon, LogOut, PanelLeft, Search,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth.js';
 import { useMotion } from '../motion/index.js';
 import { NAV_ITEMS } from '../nav.js';
 import { Avatar, IconButton, KBD, Tooltip } from './ui.js';
 import { CommandPalette } from './CommandPalette.js';
+import { NotificationBell } from './NotificationBell.js';
 import { cn } from '../lib/utils.js';
 
 const RAIL_KEY = 'pixel.rail.collapsed';
@@ -136,7 +137,7 @@ export function AppShell() {
               <span className="flex items-center gap-0.5"><KBD><CommandIcon className="h-2.5 w-2.5" /></KBD><KBD>K</KBD></span>
             </button>
             <IconButton label="Open command palette" icon={CommandIcon} className="sm:hidden" onClick={() => setPaletteOpen(true)} />
-            <IconButton label="Notifications" icon={Bell} />
+            <NotificationBell />
 
             <div className="relative" ref={menuRef}>
               <button
