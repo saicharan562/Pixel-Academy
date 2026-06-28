@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ExpenseStatus, CreateExpenseInput } from '@pixel/shared';
+import type { ExpenseStatus, CreateExpenseInput, UpdateExpenseInput } from '@pixel/shared';
 import { api } from '../../lib/api.js';
 
 export interface ExpenseRow {
@@ -32,6 +32,22 @@ export function useCreateExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateExpenseInput) => api.post<ExpenseRow>('/expenses', input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+}
+
+export function useUpdateExpense(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateExpenseInput) => api.patch<ExpenseRow>(`/expenses/${id}`, input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+}
+
+export function useDeleteExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del<void>(`/expenses/${id}`),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 }

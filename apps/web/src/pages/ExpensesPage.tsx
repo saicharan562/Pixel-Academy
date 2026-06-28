@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Check, Plus, Receipt, RotateCcw, X } from 'lucide-react';
+import { Check, Pencil, Plus, Receipt, RotateCcw, Trash2, X } from 'lucide-react';
 import { EXPENSE_STATUS, PERMISSIONS, type ExpenseStatus, type CreateExpenseInput } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
@@ -9,7 +9,9 @@ import {
   Avatar, Badge, Button, DataTable, EmptyState, ErrorNote, Input, Modal, PageHeader,
   Select, type Column, type Tone,
 } from '../components/ui.js';
-import { useExpenses, useCreateExpense, useDecideExpense, type ExpenseRow } from '../features/expenses/api.js';
+import {
+  useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useDecideExpense, type ExpenseRow,
+} from '../features/expenses/api.js';
 import { useProjects } from '../features/projects/api.js';
 
 const statusTone: Record<ExpenseStatus, Tone> = {
@@ -23,9 +25,19 @@ export function ExpensesPage() {
 
   const [status, setStatus] = useState<ExpenseStatus | ''>('');
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState<ExpenseRow | null>(null);
   const { data, isLoading, error } = useExpenses({ status: status || undefined });
   const decide = useDecideExpense();
+  const del = useDeleteExpense();
   const rows = data?.data ?? [];
+
+  function onDelete(id: string) {
+    if (!confirm('Delete this expense?')) return;
+    del.mutate(id, {
+      onSuccess: () => toast.success('Expense deleted'),
+      onError: (e) => toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
+    });
+  }
 
   const totals = useMemo(() => {
     let submitted = 0, approved = 0, reimbursed = 0;
@@ -55,6 +67,9 @@ export function ExpensesPage() {
     {
       key: 'actions', header: '', render: (x) => (
         <div className="flex items-center justify-end gap-1.5">
+          {x.status === 'submitted' && can(PERMISSIONS.EXPENSE_EDIT) && (
+            <Button size="sm" variant="secondary" icon={Pencil} onClick={() => setEditing(x)} aria-label="Edit expense" />
+          )}
           {x.status === 'submitted' && canApprove && (
             <>
               <Button size="sm" variant="secondary" icon={Check} loading={decide.isPending} onClick={() => onDecide(x.id, 'approved')}>Approve</Button>
@@ -63,6 +78,9 @@ export function ExpensesPage() {
           )}
           {x.status === 'approved' && canApprove && (
             <Button size="sm" variant="secondary" icon={RotateCcw} loading={decide.isPending} onClick={() => onDecide(x.id, 'reimbursed')}>Reimburse</Button>
+          )}
+          {x.status === 'submitted' && can(PERMISSIONS.EXPENSE_DELETE) && (
+            <Button size="sm" variant="danger" icon={Trash2} loading={del.isPending} onClick={() => onDelete(x.id)} aria-label="Delete expense" />
           )}
         </div>
       ),
@@ -107,6 +125,7 @@ export function ExpensesPage() {
       )}
 
       {submitting && <SubmitExpenseModal onClose={() => setSubmitting(false)} />}
+      {editing && <SubmitExpenseModal expense={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }
@@ -123,30 +142,40 @@ function Tile({ label, value, tone }: { label: string; value: string; tone: Tone
   );
 }
 
-function SubmitExpenseModal({ onClose }: { onClose: () => void }) {
+function SubmitExpenseModal({ expense, onClose }: { expense?: ExpenseRow; onClose: () => void }) {
   const create = useCreateExpense();
+  const update = useUpdateExpense(expense?.id ?? '');
   const toast = useToast();
   const projects = useProjects({});
   const [err, setErr] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({ category: '', amountInr: '', projectId: '', spentOn: today });
+  const [form, setForm] = useState({
+    category: expense?.category ?? '', amountInr: expense?.amountInr ?? '',
+    projectId: expense?.projectId ?? '', spentOn: expense?.spentOn.slice(0, 10) ?? today,
+  });
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const pending = expense ? update.isPending : create.isPending;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setErr(null);
     const amount = Number(form.amountInr);
     if (!(amount > 0)) { setErr('Enter an amount greater than zero.'); return; }
-    const input: CreateExpenseInput = {
-      category: form.category, amountInr: amount, spentOn: form.spentOn,
-      projectId: form.projectId || undefined,
-    };
-    try { await create.mutateAsync(input); toast.success('Expense submitted'); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to submit expense'); }
+    try {
+      if (expense) {
+        await update.mutateAsync({ category: form.category, amountInr: amount, spentOn: form.spentOn, projectId: form.projectId || undefined });
+        toast.success('Expense updated');
+      } else {
+        const input: CreateExpenseInput = { category: form.category, amountInr: amount, spentOn: form.spentOn, projectId: form.projectId || undefined };
+        await create.mutateAsync(input);
+        toast.success('Expense submitted');
+      }
+      onClose();
+    } catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to save expense'); }
   }
 
   return (
-    <Modal open onClose={onClose} title="Submit expense" description="Record a business expense for approval.">
+    <Modal open onClose={onClose} title={expense ? 'Edit expense' : 'Submit expense'} description="Record a business expense for approval.">
       <form onSubmit={submit} className="space-y-3.5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input label="Category" value={form.category} onChange={set('category')} placeholder="Travel, software…" required />
@@ -162,7 +191,7 @@ function SubmitExpenseModal({ onClose }: { onClose: () => void }) {
         {err && <ErrorNote message={err} />}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={create.isPending}>Submit</Button>
+          <Button type="submit" loading={pending}>{expense ? 'Save changes' : 'Submit'}</Button>
         </div>
       </form>
     </Modal>
