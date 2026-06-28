@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  TicketStatus, TicketEventType, Priority, CreateTicketInput, TicketTransitionInput,
+  TicketStatus, TicketEventType, Priority, CreateTicketInput, UpdateTicketInput, TicketTransitionInput,
 } from '@pixel/shared';
 import { api } from '../../lib/api.js';
 
@@ -57,6 +57,17 @@ export function useCreateTicket() {
   return useMutation({
     mutationFn: (input: CreateTicketInput) => api.post<TicketRow>('/tickets', input),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['tickets'] }),
+  });
+}
+
+export function useUpdateTicket(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateTicketInput) => api.patch<TicketRow>(`/tickets/${id}`, input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['tickets'] });
+      void qc.invalidateQueries({ queryKey: ['ticket', id] });
+    },
   });
 }
 

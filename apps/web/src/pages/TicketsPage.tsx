@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { LifeBuoy, Plus, Send } from 'lucide-react';
+import { LifeBuoy, Pencil, Plus, Send } from 'lucide-react';
 import {
   TICKET_STATUS, TICKET_TRANSITIONS, PRIORITY, PERMISSIONS,
-  type TicketStatus, type Priority, type CreateTicketInput,
+  type TicketStatus, type Priority, type CreateTicketInput, type UpdateTicketInput,
 } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
@@ -13,10 +13,10 @@ import {
   Select, Sheet, SheetSection, Spinner, type Column, type Tone,
 } from '../components/ui.js';
 import {
-  useTickets, useTicket, useCreateTicket, useTransitionTicket, useAddTicketComment,
-  type TicketRow,
+  useTickets, useTicket, useCreateTicket, useUpdateTicket, useTransitionTicket, useAddTicketComment,
+  type TicketRow, type TicketDetail,
 } from '../features/tickets/api.js';
-import { useClientOptions } from '../features/lookups/api.js';
+import { useClientOptions, useUserOptions } from '../features/lookups/api.js';
 
 const statusTone: Record<TicketStatus, Tone> = {
   open: 'blue', in_progress: 'amber', waiting_client: 'slate', resolved: 'green', closed: 'slate', escalated: 'red',
@@ -144,6 +144,7 @@ function TicketSheet({ id, onClose }: { id: string | null; onClose: () => void }
   const transition = useTransitionTicket(id ?? '');
   const addComment = useAddTicketComment(id ?? '');
   const [comment, setComment] = useState('');
+  const [editing, setEditing] = useState(false);
 
   function changeStatus(status: TicketStatus) {
     transition.mutate({ status }, {
@@ -161,7 +162,16 @@ function TicketSheet({ id, onClose }: { id: string | null; onClose: () => void }
   const nextStatuses = data ? (TICKET_TRANSITIONS[data.status] ?? []) as TicketStatus[] : [];
 
   return (
-    <Sheet open={!!id} onClose={onClose} title={data?.subject ?? 'Ticket'} subtitle={data ? `${data.ticketNo} · ${data.client.displayName}` : undefined}>
+    <Sheet
+      open={!!id} onClose={onClose}
+      title={data?.subject ?? 'Ticket'} subtitle={data ? `${data.ticketNo} · ${data.client.displayName}` : undefined}
+      footer={
+        <div className="flex items-center justify-between">
+          {can(PERMISSIONS.TICKET_EDIT) ? <Button variant="secondary" size="sm" icon={Pencil} onClick={() => setEditing(true)}>Edit</Button> : <span />}
+          <Button variant="secondary" size="sm" onClick={onClose}>Close</Button>
+        </div>
+      }
+    >
       {isLoading || !data ? <Spinner /> : (
         <>
           <SheetSection title="Details">
@@ -202,6 +212,46 @@ function TicketSheet({ id, onClose }: { id: string | null; onClose: () => void }
           </SheetSection>
         </>
       )}
+      {editing && data && <EditTicketModal ticket={data} onClose={() => setEditing(false)} />}
     </Sheet>
+  );
+}
+
+function EditTicketModal({ ticket, onClose }: { ticket: TicketDetail; onClose: () => void }) {
+  const upd = useUpdateTicket(ticket.id);
+  const toast = useToast();
+  const users = useUserOptions();
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState({ subject: ticket.subject, priority: ticket.priority, assigneeId: ticket.assigneeId ?? '' });
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const input: UpdateTicketInput = { subject: form.subject, priority: form.priority, assigneeId: form.assigneeId || null };
+    try { await upd.mutateAsync(input); toast.success('Ticket updated'); onClose(); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to update ticket'); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Edit ticket" description="Update the ticket details.">
+      <form onSubmit={submit} className="space-y-3.5">
+        <Input label="Subject" value={form.subject} onChange={set('subject')} required />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Select label="Priority" value={form.priority} onChange={set('priority')}>
+            {PRIORITY.map((p) => <option key={p} value={p}>{titleCase(p)}</option>)}
+          </Select>
+          <Select label="Assignee" hint="Optional" value={form.assigneeId} onChange={set('assigneeId')}>
+            <option value="">Unassigned</option>
+            {users.data?.data.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+          </Select>
+        </div>
+        {err && <ErrorNote message={err} />}
+        <div className="flex justify-end gap-2 border-t border-line pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" loading={upd.isPending}>Save changes</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
