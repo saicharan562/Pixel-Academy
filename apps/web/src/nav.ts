@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Building2, FolderKanban, ListChecks, Clock, Plane, ReceiptText, Users, Palette,
+  LayoutDashboard, Building2, FolderKanban, ListChecks, Timer, Clock, Plane, ReceiptText, Users, Palette,
   type LucideIcon,
 } from 'lucide-react';
 import { PERMISSIONS, type PermissionKey } from '@pixel/shared';
@@ -23,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Clients', code: 'CLT', desc: 'Accounts, contacts & GST profiles', path: '/clients', permission: PERMISSIONS.CLIENT_VIEW, Icon: Building2 },
   { label: 'Projects', code: 'PRJ', desc: 'Engagements, milestones & budgets', path: '/projects', permission: PERMISSIONS.PROJECT_VIEW, Icon: FolderKanban },
   { label: 'Tasks', code: 'TSK', desc: 'Workstreams, deps & status flow', path: '/tasks', permission: PERMISSIONS.TASK_VIEW, Icon: ListChecks },
+  { label: 'Time tracking', code: 'TIM', desc: 'Log hours, submit & approve', path: '/timesheets', permission: PERMISSIONS.TIMESHEET_VIEW, Icon: Timer },
   { label: 'Attendance', code: 'ATT', desc: 'Clock-ins & work-hour ledger', path: '/attendance', permission: PERMISSIONS.ATTENDANCE_VIEW, Icon: Clock },
   { label: 'Leaves', code: 'LVE', desc: 'Requests, approvals & balances', path: '/leaves', permission: PERMISSIONS.LEAVE_VIEW, Icon: Plane },
   { label: 'Invoices', code: 'INV', desc: 'GST billing & payment ledger', path: '/invoices', permission: PERMISSIONS.INVOICE_VIEW, Icon: ReceiptText },
