@@ -42,6 +42,29 @@ Two delivery modes exist: **India = always manual** (you sit and run the meeting
 
 ---
 
+### 🧑‍🤝‍🧑 **Roles (RACI)**
+
+Five people touch this process, but **only the Delivery Manager executes it** — the rest are support, escalation, or content. Read columns as roles, rows as steps. **R** = does the work · **A** = owns the outcome (exactly one per row) · **C** = consulted before · **I** = informed after.
+
+| Step | Delivery Mgr (Sowmya) | Funnel / Ads Team | Ramsha (Sales) | Backend (Ambika / Divya) | Sir (Dr. Aravind) | Owner (Charan) |
+|---|---|---|---|---|---|---|
+| 1. Set up & hand off 5 details | **R, A** | I |  |  |  | I |
+| 2. Daily nurture rhythm | **R, A** |  |  |  |  | I |
+| 3. Lead-gap reconciliation | **R, A** |  | R |  |  |  |
+| 4. Run nurture sequence | **R, A** |  |  |  | C |  |
+| 5. Before-session prep | **R, A** |  |  |  |  |  |
+| 6. Start live session | **R, A** |  |  | C |  |  |
+| 7. During session — links & chat | **R, A** |  | I |  | C |  |
+| 8. End session | **R, A** |  |  |  |  |  |
+| 9. If something breaks (panic) | **R, A** |  |  | R |  |  |
+| 10. Post-session reporting | **R, A** |  | I |  |  | I |
+| 11. Update funnel for next session | **R, A** |  |  |  |  |  |
+| 12. Simulive setup (Worldwide) | **R, A** |  |  |  |  |  |
+
+📌 **Tip:** When a row shows the Delivery Manager as **A** and someone else as **R**, the handoff is real work that lives outside this SOP — e.g. Step 3, Ramsha makes the welcome calls, but the Delivery Manager stays accountable for closing the gap.
+
+---
+
 ## 🪜 **Step-by-Step Process**
 
 ---
