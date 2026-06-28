@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Check, Clock, Plus, Send, Trash2, X } from 'lucide-react';
+import { Check, Clock, Pencil, Plus, Send, Trash2, X } from 'lucide-react';
 import {
   TIMESHEET_STATUS, PERMISSIONS,
   type TimesheetStatus, type CreateTimesheetInput,
@@ -13,7 +13,7 @@ import {
   Select, type Column, type Tone,
 } from '../components/ui.js';
 import {
-  useTimesheets, useCreateTimesheet, useSubmitTimesheet, useDecideTimesheet, useDeleteTimesheet,
+  useTimesheets, useCreateTimesheet, useUpdateTimesheet, useSubmitTimesheet, useDecideTimesheet, useDeleteTimesheet,
   type TimesheetRow,
 } from '../features/timesheets/api.js';
 import { useProjects } from '../features/projects/api.js';
@@ -37,6 +37,7 @@ export function TimesheetsPage() {
   const [status, setStatus] = useState<TimesheetStatus | ''>('');
   const [projectId, setProjectId] = useState('');
   const [logging, setLogging] = useState(false);
+  const [editing, setEditing] = useState<TimesheetRow | null>(null);
 
   const projects = useProjects({});
   const { data, isLoading, error } = useTimesheets({
@@ -92,6 +93,9 @@ export function TimesheetsPage() {
     {
       key: 'actions', header: '', render: (t) => (
         <div className="flex items-center justify-end gap-1.5">
+          {(t.status === 'draft' || t.status === 'rejected') && can(PERMISSIONS.TIMESHEET_EDIT) && (
+            <Button size="sm" variant="secondary" icon={Pencil} onClick={() => setEditing(t)} aria-label="Edit entry" />
+          )}
           {t.status === 'draft' && can(PERMISSIONS.TIMESHEET_EDIT) && (
             <Button size="sm" variant="secondary" icon={Send} loading={submit.isPending} onClick={() => onSubmit(t.id)}>Submit</Button>
           )}
@@ -152,6 +156,7 @@ export function TimesheetsPage() {
       )}
 
       {logging && <LogTimeModal onClose={() => setLogging(false)} />}
+      {editing && <LogTimeModal entry={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }
@@ -169,14 +174,22 @@ function SummaryTile({ label, value, tone }: { label: string; value: string; ton
   );
 }
 
-function LogTimeModal({ onClose }: { onClose: () => void }) {
+function LogTimeModal({ entry, onClose }: { entry?: TimesheetRow; onClose: () => void }) {
   const create = useCreateTimesheet();
+  const update = useUpdateTimesheet(entry?.id ?? '');
   const toast = useToast();
   const projects = useProjects({});
   const [err, setErr] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({ projectId: '', workDate: today, hours: '', minutes: '', note: '' });
+  const [form, setForm] = useState({
+    projectId: entry?.projectId ?? '',
+    workDate: entry?.workDate.slice(0, 10) ?? today,
+    hours: entry ? String(Math.floor(entry.minutes / 60)) : '',
+    minutes: entry ? String(entry.minutes % 60) : '',
+    note: entry?.note ?? '',
+  });
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const pending = entry ? update.isPending : create.isPending;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -184,16 +197,21 @@ function LogTimeModal({ onClose }: { onClose: () => void }) {
     const minutes = (Number(form.hours) || 0) * 60 + (Number(form.minutes) || 0);
     if (minutes < 1) { setErr('Enter a duration of at least 1 minute.'); return; }
     if (!form.projectId) { setErr('Select a project.'); return; }
-    const input: CreateTimesheetInput = {
-      projectId: form.projectId, workDate: form.workDate, minutes,
-      note: form.note.trim() || undefined,
-    };
-    try { await create.mutateAsync(input); toast.success('Time logged', `${minutes} min`); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to log time'); }
+    try {
+      if (entry) {
+        await update.mutateAsync({ projectId: form.projectId, workDate: form.workDate, minutes, note: form.note.trim() || null });
+        toast.success('Time entry updated');
+      } else {
+        const input: CreateTimesheetInput = { projectId: form.projectId, workDate: form.workDate, minutes, note: form.note.trim() || undefined };
+        await create.mutateAsync(input);
+        toast.success('Time logged', `${minutes} min`);
+      }
+      onClose();
+    } catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to save time entry'); }
   }
 
   return (
-    <Modal open onClose={onClose} title="Log time" description="Record hours worked against a project.">
+    <Modal open onClose={onClose} title={entry ? 'Edit time entry' : 'Log time'} description="Record hours worked against a project.">
       <form onSubmit={onSubmit} className="space-y-3.5">
         <Select label="Project" value={form.projectId} onChange={set('projectId')} required>
           <option value="">Select project…</option>
@@ -208,7 +226,7 @@ function LogTimeModal({ onClose }: { onClose: () => void }) {
         {err && <ErrorNote message={err} />}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={create.isPending}>Log time</Button>
+          <Button type="submit" loading={pending}>{entry ? 'Save changes' : 'Log time'}</Button>
         </div>
       </form>
     </Modal>
