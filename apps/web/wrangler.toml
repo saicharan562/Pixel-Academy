@@ -1,0 +1,8 @@
+# Tells Cloudflare's Worker deploy to serve this as a plain static site (the
+# Vite-built dist/ folder) instead of trying to auto-detect a framework
+# integration. No server-side code here — pure static assets.
+name = "pixelacademy"
+compatibility_date = "2026-06-28"
+
+[assets]
+directory = "./dist"
