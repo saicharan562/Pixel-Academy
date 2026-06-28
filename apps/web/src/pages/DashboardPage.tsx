@@ -2,19 +2,21 @@ import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
-  ArrowRight, ArrowUpRight, Building2, FolderKanban, ListChecks, Plus, ShieldCheck,
-  TrendingUp, type LucideIcon,
+  ArrowRight, ArrowUpRight, Building2, FolderKanban, IndianRupee, ListChecks, Plus,
+  Repeat, ShieldCheck, TrendingUp, Users, type LucideIcon,
 } from 'lucide-react';
 import {
   CLIENT_STATUS, PROJECT_STATUS, TASK_STATUS, PERMISSIONS, type PermissionKey,
 } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { useRich3D } from '../lib/capabilities.js';
+import { formatINR } from '../lib/format.js';
 import { AnimatedCounter, FadeItem, Lift, Stagger } from '../components/motion.js';
 import { Avatar, Badge, Card, EmptyState, Skeleton, Sparkline, type Tone } from '../components/ui.js';
 import { useClients } from '../features/clients/api.js';
 import { useProjects } from '../features/projects/api.js';
 import { useTasks, type TaskRow } from '../features/tasks/api.js';
+import { isOrgDashboard, useDashboard } from '../features/reports/api.js';
 
 const Hero3D = lazy(() => import('../components/three/Hero3D.js').then((m) => ({ default: m.Hero3D })));
 
@@ -33,7 +35,9 @@ export function DashboardPage() {
   const clients = useClients({});
   const projects = useProjects({});
   const tasks = useTasks({});
+  const dashboard = useDashboard();
   const loading = clients.isLoading || projects.isLoading || tasks.isLoading;
+  const org = isOrgDashboard(dashboard.data) ? dashboard.data : null;
 
   const clientRows = clients.data?.data ?? [];
   const projectRows = projects.data?.data ?? [];
@@ -116,6 +120,52 @@ export function DashboardPage() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Executive KPIs — revenue, MRR, utilization (org-wide roles only) */}
+      {org && (
+        <section>
+          <h2 className="mb-3 text-2xs font-semibold uppercase tracking-wider text-content-tertiary">Executive overview</h2>
+          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FadeItem>
+              <Card className="p-5">
+                <div className="flex items-center gap-2 text-content-tertiary">
+                  <IndianRupee className="h-4 w-4" />
+                  <p className="text-2xs font-medium uppercase tracking-wider">Revenue (MTD)</p>
+                </div>
+                <p className="nums mt-2 text-2xl font-semibold text-content">{formatINR(org.revenueThisMonthInr)}</p>
+              </Card>
+            </FadeItem>
+            <FadeItem>
+              <Card className="p-5">
+                <div className="flex items-center gap-2 text-content-tertiary">
+                  <Repeat className="h-4 w-4" />
+                  <p className="text-2xs font-medium uppercase tracking-wider">MRR</p>
+                </div>
+                <p className="nums mt-2 text-2xl font-semibold text-content">{formatINR(org.mrrInr)}</p>
+              </Card>
+            </FadeItem>
+            <FadeItem>
+              <Card className="p-5">
+                <div className="flex items-center gap-2 text-content-tertiary">
+                  <Users className="h-4 w-4" />
+                  <p className="text-2xs font-medium uppercase tracking-wider">Team utilization</p>
+                </div>
+                <p className="nums mt-2 text-2xl font-semibold text-content">{org.teamUtilizationPct}%</p>
+              </Card>
+            </FadeItem>
+            <FadeItem>
+              <Card className="p-5">
+                <div className="flex items-center gap-2 text-content-tertiary">
+                  <FolderKanban className="h-4 w-4" />
+                  <p className="text-2xs font-medium uppercase tracking-wider">Delayed projects</p>
+                </div>
+                <p className="nums mt-2 text-2xl font-semibold text-content">{org.delayedProjects}</p>
+                <p className="mt-1 text-xs text-content-tertiary">{formatINR(org.outstandingReceivablesInr)} outstanding</p>
+              </Card>
+            </FadeItem>
+          </Stagger>
+        </section>
+      )}
 
       {/* KPI cards */}
       <section>
