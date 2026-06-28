@@ -58,20 +58,20 @@ export function TimesheetsPage() {
   function onSubmit(id: string) {
     submit.mutate(id, {
       onSuccess: () => toast.success('Submitted for approval'),
-      onError: (e) => toast.error('Submit failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Submit failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
   function onDecide(id: string, decision: 'approved' | 'rejected') {
     decide.mutate({ id, decision }, {
       onSuccess: () => toast.success(decision === 'approved' ? 'Timesheet approved' : 'Timesheet rejected'),
-      onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
   function onDelete(id: string) {
     if (!confirm('Delete this entry?')) return;
     del.mutate(id, {
       onSuccess: () => toast.success('Entry deleted'),
-      onError: (e) => toast.error('Delete failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
 
@@ -136,7 +136,7 @@ export function TimesheetsPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(t) => t.id} isLoading={isLoading}
@@ -189,7 +189,7 @@ function LogTimeModal({ onClose }: { onClose: () => void }) {
       note: form.note.trim() || undefined,
     };
     try { await create.mutateAsync(input); toast.success('Time logged', `${minutes} min`); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to log time'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to log time'); }
   }
 
   return (

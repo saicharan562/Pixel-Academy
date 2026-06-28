@@ -39,7 +39,7 @@ export function NotificationsPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : isLoading ? (
         <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
       ) : rows.length === 0 ? (

@@ -78,7 +78,7 @@ export function ProjectsPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(p) => p.id} onRowClick={(p) => setSelectedId(p.id)}
@@ -118,7 +118,7 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
       budgetInr: form.budgetInr ? Number(form.budgetInr) : undefined,
     };
     try { await create.mutateAsync(input); toast.success('Project created', form.name); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to create project'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to create project'); }
   }
 
   return (
@@ -163,13 +163,13 @@ function ProjectSheet({ id, onClose }: { id: string | null; onClose: () => void 
   async function onDelete() {
     if (!id || !confirm('Soft-delete this project?')) return;
     try { await del.mutateAsync(id); toast.success('Project deleted'); onClose(); }
-    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.message : undefined); }
+    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined); }
   }
   async function onAddMilestone(e: FormEvent) {
     e.preventDefault();
     if (!msName) return;
     try { await addMs.mutateAsync({ name: msName, status: 'open', orderIndex: data?.milestones.length ?? 0 }); setMsName(''); toast.success('Milestone added'); }
-    catch (e2) { toast.error('Could not add milestone', e2 instanceof ApiRequestError ? e2.message : undefined); }
+    catch (e2) { toast.error('Could not add milestone', e2 instanceof ApiRequestError ? e2.displayMessage : undefined); }
   }
 
   return (

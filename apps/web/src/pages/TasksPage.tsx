@@ -55,7 +55,7 @@ export function TasksPage() {
       return;
     }
     move.mutate({ id: taskId, status: to }, {
-      onError: (e) => toast.error('Move failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Move failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
 
@@ -92,7 +92,7 @@ export function TasksPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : view === 'table' ? (
         <DataTable
           columns={columns} rows={rows} getRowId={(t) => t.id} onRowClick={(t) => setSelectedId(t.id)}
@@ -217,7 +217,7 @@ function CreateTaskModal({ onClose }: { onClose: () => void }) {
       assigneeId: form.assigneeId || undefined, dueDate: form.dueDate || undefined,
     };
     try { await create.mutateAsync(input); toast.success('Task created', form.title); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to create task'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to create task'); }
   }
 
   return (
@@ -258,13 +258,13 @@ function TaskSheet({ id, onClose }: { id: string | null; onClose: () => void }) 
   function changeStatus(status: TaskStatus) {
     upd.mutate({ status }, {
       onSuccess: () => toast.success('Status updated', titleCase(status)),
-      onError: (e) => toast.error('Update failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Update failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
   async function onDelete() {
     if (!id || !confirm('Soft-delete this task?')) return;
     try { await del.mutateAsync(id); toast.success('Task deleted'); onClose(); }
-    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.message : undefined); }
+    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined); }
   }
 
   return (

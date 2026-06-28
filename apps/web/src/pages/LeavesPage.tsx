@@ -30,7 +30,7 @@ export function LeavesPage() {
   function onDecide(id: string, decision: 'approved' | 'rejected') {
     decide.mutate({ id, decision }, {
       onSuccess: () => toast.success(decision === 'approved' ? 'Leave approved' : 'Leave rejected'),
-      onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
 
@@ -71,7 +71,7 @@ export function LeavesPage() {
         </Select>
       </div>
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(l) => l.id} isLoading={isLoading}
@@ -109,7 +109,7 @@ function RequestLeaveModal({ onClose }: { onClose: () => void }) {
       reason: form.reason.trim() || undefined,
     };
     try { await create.mutateAsync(input); toast.success('Leave requested'); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to request leave'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to request leave'); }
   }
 
   return (

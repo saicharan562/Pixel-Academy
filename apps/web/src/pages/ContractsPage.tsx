@@ -62,7 +62,7 @@ export function ContractsPage() {
         </Select>
       </div>
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(c) => c.id} isLoading={isLoading}
@@ -101,7 +101,7 @@ function CreateContractModal({ onClose }: { onClose: () => void }) {
       valueInr: form.valueInr ? Number(form.valueInr) : undefined,
     };
     try { await create.mutateAsync(input); toast.success('Contract created', form.title); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to create contract'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to create contract'); }
   }
 
   return (

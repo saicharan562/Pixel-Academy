@@ -1,4 +1,4 @@
-import type { ApiError, ErrorCode } from '@pixel/shared';
+import type { ApiError, ErrorCode, ErrorDetail } from '@pixel/shared';
 
 /**
  * Typed API client for the Pixel Academy backend.
@@ -47,10 +47,32 @@ export class ApiRequestError extends Error {
     public readonly code: ErrorCode | 'NETWORK',
     message: string,
     public readonly requestId?: string,
+    public readonly details?: ErrorDetail[],
   ) {
     super(message);
     this.name = 'ApiRequestError';
   }
+
+  /**
+   * A human-readable message that includes field-level validation issues when
+   * present, so forms can show "Title: Required" instead of the generic
+   * "Request validation failed".
+   */
+  get displayMessage(): string {
+    if (this.details && this.details.length > 0) {
+      return this.details
+        .map((d) => (d.field ? `${humanizeField(d.field)}: ${d.issue}` : d.issue))
+        .join(' · ');
+    }
+    return this.message;
+  }
+}
+
+/** "endDate" → "End date", "valueInr" → "Value inr" — best-effort label. */
+function humanizeField(field: string): string {
+  const last = field.split('.').pop() ?? field;
+  const spaced = last.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 async function parseError(res: Response): Promise<ApiRequestError> {
@@ -61,6 +83,7 @@ async function parseError(res: Response): Promise<ApiRequestError> {
       body.error.code,
       body.error.message,
       body.error.requestId,
+      body.error.details,
     );
   } catch {
     return new ApiRequestError(res.status, 'NETWORK', res.statusText || 'Request failed');

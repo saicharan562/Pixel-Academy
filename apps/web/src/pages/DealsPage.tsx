@@ -48,7 +48,7 @@ export function DealsPage() {
   function onDrop(id: string, from: DealStage, to: DealStage) {
     if (from === to) return;
     update.mutate({ id, input: { stage: to } }, {
-      onError: (e) => toast.error('Move failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Move failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
 
@@ -67,7 +67,7 @@ export function DealsPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : isLoading ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
           {DEAL_STAGE.map((s) => <div key={s} className="h-64 rounded-xl border border-line bg-surface-2/40" />)}
@@ -186,7 +186,7 @@ function CreateDealModal({ onClose }: { onClose: () => void }) {
       probability: form.probability ? Number(form.probability) : undefined,
     };
     try { await create.mutateAsync(input); toast.success('Deal created', form.title); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to create deal'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to create deal'); }
   }
 
   return (

@@ -41,7 +41,7 @@ export function ExpensesPage() {
   function onDecide(id: string, decision: 'approved' | 'rejected' | 'reimbursed') {
     decide.mutate({ id, decision }, {
       onSuccess: () => toast.success(`Expense ${decision}`),
-      onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
 
@@ -91,7 +91,7 @@ export function ExpensesPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(x) => x.id} isLoading={isLoading}
@@ -142,7 +142,7 @@ function SubmitExpenseModal({ onClose }: { onClose: () => void }) {
       projectId: form.projectId || undefined,
     };
     try { await create.mutateAsync(input); toast.success('Expense submitted'); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to submit expense'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to submit expense'); }
   }
 
   return (

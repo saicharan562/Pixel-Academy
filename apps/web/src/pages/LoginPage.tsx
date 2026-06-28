@@ -39,7 +39,7 @@ export function LoginPage() {
       if (remember) localStorage.setItem(REMEMBER_KEY, email);
       else localStorage.removeItem(REMEMBER_KEY);
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : 'Unable to sign in. Please try again.');
+      setError(err instanceof ApiRequestError ? err.displayMessage : 'Unable to sign in. Please try again.');
     } finally {
       setSubmitting(false);
     }

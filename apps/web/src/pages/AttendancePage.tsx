@@ -50,7 +50,7 @@ export function AttendancePage() {
         </Select>
       </div>
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(a) => a.id} isLoading={isLoading}

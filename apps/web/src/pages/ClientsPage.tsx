@@ -69,7 +69,7 @@ export function ClientsPage() {
       </div>
 
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns}
@@ -120,7 +120,7 @@ function CreateClientModal({ onClose }: { onClose: () => void }) {
       toast.success('Client created', `${form.displayName} is now in your workspace.`);
       onClose();
     } catch (e2) {
-      setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to create client');
+      setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to create client');
     }
   }
 
@@ -166,7 +166,7 @@ function ClientSheet({ id, onClose }: { id: string | null; onClose: () => void }
   async function onDelete() {
     if (!id || !confirm('Soft-delete this client?')) return;
     try { await del.mutateAsync(id); toast.success('Client deleted'); onClose(); }
-    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.message : undefined); }
+    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined); }
   }
   async function onAddContact(e: FormEvent) {
     e.preventDefault();
@@ -175,7 +175,7 @@ function ClientSheet({ id, onClose }: { id: string | null; onClose: () => void }
       await addContact.mutateAsync({ name: contactName, email: contactEmail || undefined, isPrimary: false });
       setContactName(''); setContactEmail('');
       toast.success('Contact added');
-    } catch (e2) { toast.error('Could not add contact', e2 instanceof ApiRequestError ? e2.message : undefined); }
+    } catch (e2) { toast.error('Could not add contact', e2 instanceof ApiRequestError ? e2.displayMessage : undefined); }
   }
 
   return (

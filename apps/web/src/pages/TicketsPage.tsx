@@ -75,7 +75,7 @@ export function TicketsPage() {
         </Select>
       </div>
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(t) => t.id} onRowClick={(t) => setSelectedId(t.id)} isLoading={isLoading}
@@ -112,7 +112,7 @@ function CreateTicketModal({ onClose }: { onClose: () => void }) {
       description: form.description.trim() || undefined,
     };
     try { await create.mutateAsync(input); toast.success('Ticket created', form.subject); onClose(); }
-    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.message : 'Failed to create ticket'); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to create ticket'); }
   }
 
   return (
@@ -148,14 +148,14 @@ function TicketSheet({ id, onClose }: { id: string | null; onClose: () => void }
   function changeStatus(status: TicketStatus) {
     transition.mutate({ status }, {
       onSuccess: () => toast.success('Status updated', titleCase(status)),
-      onError: (e) => toast.error('Update failed', e instanceof ApiRequestError ? e.message : undefined),
+      onError: (e) => toast.error('Update failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
   async function postComment(e: FormEvent) {
     e.preventDefault();
     if (!comment.trim()) return;
     try { await addComment.mutateAsync(comment.trim()); setComment(''); }
-    catch (e2) { toast.error('Comment failed', e2 instanceof ApiRequestError ? e2.message : undefined); }
+    catch (e2) { toast.error('Comment failed', e2 instanceof ApiRequestError ? e2.displayMessage : undefined); }
   }
 
   const nextStatuses = data ? (TICKET_TRANSITIONS[data.status] ?? []) as TicketStatus[] : [];

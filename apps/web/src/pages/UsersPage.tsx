@@ -35,7 +35,7 @@ export function UsersPage() {
     <div>
       <PageHeader title="Users" subtitle="Team members, roles and access" />
       {error ? (
-        <ErrorNote message={(error as ApiRequestError).message} />
+        <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
           columns={columns} rows={rows} getRowId={(u) => u.id} isLoading={isLoading}
