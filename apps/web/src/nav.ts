@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Building2, Handshake, FolderKanban, ListChecks, Timer, Clock, Plane, ReceiptText, LifeBuoy, Users, Palette,
+  LayoutDashboard, Building2, Handshake, FolderKanban, ListChecks, Timer, Clock, Plane, ReceiptText, Receipt, LifeBuoy, Users, Palette,
   type LucideIcon,
 } from 'lucide-react';
 import { PERMISSIONS, type PermissionKey } from '@pixel/shared';
@@ -28,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Attendance', code: 'ATT', desc: 'Clock-ins & work-hour ledger', path: '/attendance', permission: PERMISSIONS.ATTENDANCE_VIEW, Icon: Clock },
   { label: 'Leaves', code: 'LVE', desc: 'Requests, approvals & balances', path: '/leaves', permission: PERMISSIONS.LEAVE_VIEW, Icon: Plane },
   { label: 'Invoices', code: 'INV', desc: 'GST billing & payment ledger', path: '/invoices', permission: PERMISSIONS.INVOICE_VIEW, Icon: ReceiptText },
+  { label: 'Expenses', code: 'EXP', desc: 'Team spend & reimbursements', path: '/expenses', permission: PERMISSIONS.EXPENSE_VIEW, Icon: Receipt },
   { label: 'Tickets', code: 'TKT', desc: 'Support requests & SLA tracking', path: '/tickets', permission: PERMISSIONS.TICKET_VIEW, Icon: LifeBuoy },
   { label: 'Users', code: 'USR', desc: 'Roles, access & identities', path: '/users', permission: PERMISSIONS.USER_VIEW, Icon: Users },
   { label: 'Design system', code: 'SYS', desc: 'Component & token showcase', path: '/style', permission: null, Icon: Palette },
