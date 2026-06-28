@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Check, Plane, Plus, X } from 'lucide-react';
+import { Ban, Check, Plane, Plus, X } from 'lucide-react';
 import { LEAVE_STATUS, PERMISSIONS, type LeaveStatus, type CreateLeaveRequestInput } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
@@ -10,14 +10,14 @@ import {
   Select, type Column, type Tone,
 } from '../components/ui.js';
 import {
-  useLeaveRequests, useLeaveTypes, useCreateLeaveRequest, useDecideLeaveRequest,
+  useLeaveRequests, useLeaveTypes, useCreateLeaveRequest, useDecideLeaveRequest, useCancelLeaveRequest,
   type LeaveRequestRow,
 } from '../features/leaves/api.js';
 
 const statusTone: Record<string, Tone> = { pending: 'amber', approved: 'green', rejected: 'red', cancelled: 'slate' };
 
 export function LeavesPage() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const toast = useToast();
   const canApprove = can(PERMISSIONS.LEAVE_APPROVE);
 
@@ -25,12 +25,20 @@ export function LeavesPage() {
   const [requesting, setRequesting] = useState(false);
   const { data, isLoading, error } = useLeaveRequests({ status: status || undefined });
   const decide = useDecideLeaveRequest();
+  const cancel = useCancelLeaveRequest();
   const rows = data?.data ?? [];
 
   function onDecide(id: string, decision: 'approved' | 'rejected') {
     decide.mutate({ id, decision }, {
       onSuccess: () => toast.success(decision === 'approved' ? 'Leave approved' : 'Leave rejected'),
       onError: (e) => toast.error('Action failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
+    });
+  }
+  function onCancel(id: string) {
+    if (!confirm('Cancel this leave request?')) return;
+    cancel.mutate(id, {
+      onSuccess: () => toast.success('Leave request cancelled'),
+      onError: (e) => toast.error('Cancel failed', e instanceof ApiRequestError ? e.displayMessage : undefined),
     });
   }
 
@@ -51,6 +59,9 @@ export function LeavesPage() {
               <Button size="sm" variant="secondary" icon={Check} loading={decide.isPending} onClick={() => onDecide(l.id, 'approved')}>Approve</Button>
               <Button size="sm" variant="secondary" icon={X} loading={decide.isPending} onClick={() => onDecide(l.id, 'rejected')}>Reject</Button>
             </>
+          )}
+          {l.status === 'pending' && l.userId === user?.id && (
+            <Button size="sm" variant="secondary" icon={Ban} loading={cancel.isPending} onClick={() => onCancel(l.id)}>Cancel</Button>
           )}
         </div>
       ),
