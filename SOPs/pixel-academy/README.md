@@ -12,6 +12,7 @@ Standard Operating Procedures for Pixel Academy (Charan's agency for webinar-bas
 | SOP | Department | For | Status |
 |---|---|---|---|
 | [Delivery Manager — Dr. Aravind Masterclass Funnel](operations/delivery-manager-aravind-masterclass.md) | operations | Sowmya | ✅ v1.0 (2 TODOs to fill) |
+| [Complete Funnel Process — Dr. Aravind](operations/complete-funnel-process-aravind.md) | operations | Sowmya | 🟡 v1.0 draft (TODOs to fill) |
 
 ## Hosting
 
