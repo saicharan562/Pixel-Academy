@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { FileSignature, Plus } from 'lucide-react';
-import { CONTRACT_STATUS, PERMISSIONS, type ContractStatus, type CreateContractInput } from '@pixel/shared';
+import { FileSignature, Plus, Trash2 } from 'lucide-react';
+import { CONTRACT_STATUS, PERMISSIONS, type ContractStatus, type CreateContractInput, type UpdateContractInput } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
 import { useToast } from '../components/ui/toast.js';
@@ -9,7 +9,9 @@ import {
   Badge, Button, DataTable, EmptyState, ErrorNote, Input, Modal, PageHeader,
   Select, type Column, type Tone,
 } from '../components/ui.js';
-import { useContracts, useCreateContract, type ContractRow } from '../features/contracts/api.js';
+import {
+  useContracts, useCreateContract, useUpdateContract, useDeleteContract, type ContractRow,
+} from '../features/contracts/api.js';
 import { useClientOptions } from '../features/lookups/api.js';
 
 const statusTone: Record<ContractStatus, Tone> = {
@@ -26,6 +28,7 @@ export function ContractsPage() {
   const { can } = useAuth();
   const [status, setStatus] = useState<ContractStatus | ''>('');
   const [creating, setCreating] = useState(false);
+  const [selected, setSelected] = useState<ContractRow | null>(null);
   const { data, isLoading, error } = useContracts({ status: status || undefined });
   const rows = data?.data ?? [];
 
@@ -65,7 +68,7 @@ export function ContractsPage() {
         <ErrorNote message={(error as ApiRequestError).displayMessage} />
       ) : (
         <DataTable
-          columns={columns} rows={rows} getRowId={(c) => c.id} isLoading={isLoading}
+          columns={columns} rows={rows} getRowId={(c) => c.id} onRowClick={(c) => setSelected(c)} isLoading={isLoading}
           empty={
             <EmptyState
               icon={FileSignature}
@@ -77,6 +80,7 @@ export function ContractsPage() {
         />
       )}
       {creating && <CreateContractModal onClose={() => setCreating(false)} />}
+      {selected && <EditContractModal contract={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
@@ -128,6 +132,68 @@ function CreateContractModal({ onClose }: { onClose: () => void }) {
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={create.isPending}>Create contract</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditContractModal({ contract, onClose }: { contract: ContractRow; onClose: () => void }) {
+  const { can } = useAuth();
+  const update = useUpdateContract(contract.id);
+  const del = useDeleteContract();
+  const toast = useToast();
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    title: contract.title, valueInr: contract.valueInr ?? '',
+    startDate: contract.startDate.slice(0, 10), endDate: contract.endDate.slice(0, 10),
+    status: contract.status, autoRenew: contract.autoRenew,
+  });
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    if (form.endDate < form.startDate) { setErr('End date must be on or after start date.'); return; }
+    const input: UpdateContractInput = {
+      title: form.title, startDate: form.startDate, endDate: form.endDate,
+      status: form.status, autoRenew: form.autoRenew,
+      valueInr: form.valueInr ? Number(form.valueInr) : null,
+    };
+    try { await update.mutateAsync(input); toast.success('Contract updated'); onClose(); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to update contract'); }
+  }
+  async function onDelete() {
+    if (!confirm('Delete this contract?')) return;
+    try { await del.mutateAsync(contract.id); toast.success('Contract deleted'); onClose(); }
+    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Edit contract" description={contract.client.displayName}>
+      <form onSubmit={submit} className="space-y-3.5">
+        <Input label="Title" value={form.title} onChange={set('title')} required />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Input label="Value (₹)" hint="Optional" type="number" min={0} value={form.valueInr} onChange={set('valueInr')} placeholder="0" />
+          <Select label="Status" value={form.status} onChange={set('status')}>
+            {CONTRACT_STATUS.map((s) => <option key={s} value={s}>{titleCase(s)}</option>)}
+          </Select>
+          <Input label="Start date" type="date" value={form.startDate} onChange={set('startDate')} required />
+          <Input label="End date" type="date" value={form.endDate} onChange={set('endDate')} required />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-content-secondary">
+          <input type="checkbox" checked={form.autoRenew} onChange={(e) => setForm((f) => ({ ...f, autoRenew: e.target.checked }))} className="h-4 w-4 rounded border-line" />
+          Auto-renew at end of term
+        </label>
+        {err && <ErrorNote message={err} />}
+        <div className="flex items-center justify-between border-t border-line pt-4">
+          {can(PERMISSIONS.CONTRACT_DELETE) ? (
+            <Button type="button" variant="danger" icon={Trash2} loading={del.isPending} onClick={() => void onDelete()}>Delete</Button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" loading={update.isPending}>Save changes</Button>
+          </div>
         </div>
       </form>
     </Modal>

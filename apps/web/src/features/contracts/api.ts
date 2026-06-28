@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ContractStatus, CreateContractInput } from '@pixel/shared';
+import type { ContractStatus, CreateContractInput, UpdateContractInput } from '@pixel/shared';
 import { api } from '../../lib/api.js';
 
 export interface ContractRow {
@@ -31,6 +31,22 @@ export function useCreateContract() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateContractInput) => api.post<ContractRow>('/contracts', input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['contracts'] }),
+  });
+}
+
+export function useUpdateContract(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateContractInput) => api.patch<ContractRow>(`/contracts/${id}`, input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['contracts'] }),
+  });
+}
+
+export function useDeleteContract() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del<void>(`/contracts/${id}`),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['contracts'] }),
   });
 }
