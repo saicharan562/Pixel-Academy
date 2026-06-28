@@ -1,9 +1,9 @@
 import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { Columns3, ListChecks, Plus, Table2, Trash2 } from 'lucide-react';
+import { Columns3, ListChecks, Pencil, Plus, Table2, Trash2 } from 'lucide-react';
 import {
   TASK_STATUS, PRIORITY, TASK_TRANSITIONS, PERMISSIONS,
-  type TaskStatus, type Priority, type CreateTaskInput,
+  type TaskStatus, type Priority, type CreateTaskInput, type UpdateTaskInput,
 } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
@@ -254,6 +254,7 @@ function TaskSheet({ id, onClose }: { id: string | null; onClose: () => void }) 
   const { data, isLoading } = useTask(id);
   const upd = useUpdateTask(id ?? '');
   const del = useDeleteTask();
+  const [editing, setEditing] = useState(false);
 
   function changeStatus(status: TaskStatus) {
     upd.mutate({ status }, {
@@ -273,7 +274,10 @@ function TaskSheet({ id, onClose }: { id: string | null; onClose: () => void }) 
       title={data?.title ?? 'Task'} subtitle={data?.project.name}
       footer={
         <div className="flex items-center justify-between">
-          {can(PERMISSIONS.TASK_DELETE) ? <Button variant="danger" size="sm" icon={Trash2} loading={del.isPending} onClick={() => void onDelete()}>Delete</Button> : <span />}
+          <div className="flex items-center gap-2">
+            {can(PERMISSIONS.TASK_DELETE) && <Button variant="danger" size="sm" icon={Trash2} loading={del.isPending} onClick={() => void onDelete()}>Delete</Button>}
+            {can(PERMISSIONS.TASK_EDIT) && <Button variant="secondary" size="sm" icon={Pencil} onClick={() => setEditing(true)}>Edit</Button>}
+          </div>
           <Button variant="secondary" size="sm" onClick={onClose}>Close</Button>
         </div>
       }
@@ -328,6 +332,54 @@ function TaskSheet({ id, onClose }: { id: string | null; onClose: () => void }) 
           )}
         </>
       )}
+      {editing && data && <EditTaskModal task={data} onClose={() => setEditing(false)} />}
     </Sheet>
+  );
+}
+
+function EditTaskModal({ task, onClose }: { task: TaskRow; onClose: () => void }) {
+  const upd = useUpdateTask(task.id);
+  const toast = useToast();
+  const users = useUserOptions();
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    title: task.title, description: task.description ?? '', assigneeId: task.assigneeId ?? '',
+    priority: task.priority, dueDate: task.dueDate?.slice(0, 10) ?? '',
+  });
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const input: UpdateTaskInput = {
+      title: form.title, description: form.description.trim() || null,
+      assigneeId: form.assigneeId || null, priority: form.priority, dueDate: form.dueDate || null,
+    };
+    try { await upd.mutateAsync(input); toast.success('Task updated'); onClose(); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to update task'); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Edit task" description="Update task details.">
+      <form onSubmit={submit} className="space-y-3.5">
+        <Input label="Title" value={form.title} onChange={set('title')} required />
+        <Input label="Description" hint="Optional" value={form.description} onChange={set('description')} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Select label="Assignee" hint="Optional" value={form.assigneeId} onChange={set('assigneeId')}>
+            <option value="">Unassigned</option>
+            {users.data?.data.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+          </Select>
+          <Select label="Priority" value={form.priority} onChange={set('priority')}>
+            {PRIORITY.map((p) => <option key={p} value={p}>{titleCase(p)}</option>)}
+          </Select>
+          <Input label="Due date" hint="Optional" type="date" value={form.dueDate} onChange={set('dueDate')} />
+        </div>
+        {err && <ErrorNote message={err} />}
+        <div className="flex justify-end gap-2 border-t border-line pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" loading={upd.isPending}>Save changes</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
