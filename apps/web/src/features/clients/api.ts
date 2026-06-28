@@ -32,6 +32,10 @@ export interface ContactRow {
   isPrimary: boolean;
 }
 
+export interface ClientDetail extends ClientRow {
+  contacts: ContactRow[];
+}
+
 interface Page<T> {
   data: T[];
   nextCursor: string | null;
@@ -51,7 +55,7 @@ export function useClients(params: { status?: ClientStatus; search?: string }) {
 export function useClient(id: string | null) {
   return useQuery({
     queryKey: ['client', id],
-    queryFn: () => api.get<ClientRow & { contacts: ContactRow[] }>(`/clients/${id}`),
+    queryFn: () => api.get<ClientDetail>(`/clients/${id}`),
     enabled: !!id,
   });
 }

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Building2, Plus, Search, Trash2 } from 'lucide-react';
-import { CLIENT_STATUS, PERMISSIONS, type ClientStatus, type CreateClientInput } from '@pixel/shared';
+import { Building2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { CLIENT_STATUS, PERMISSIONS, type ClientStatus, type CreateClientInput, type UpdateClientInput } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
 import { useToast } from '../components/ui/toast.js';
@@ -10,8 +10,8 @@ import {
   SegmentedControl, Select, Sheet, SheetSection, Spinner, type Column, type Tone,
 } from '../components/ui.js';
 import {
-  useClients, useClient, useCreateClient, useDeleteClient, useAddContact, useDeleteContact,
-  type ClientRow,
+  useClients, useClient, useCreateClient, useUpdateClient, useDeleteClient, useAddContact, useDeleteContact,
+  type ClientRow, type ClientDetail,
 } from '../features/clients/api.js';
 
 const statusTone: Record<ClientStatus, Tone> = { active: 'green', inactive: 'slate', prospect: 'amber' };
@@ -162,6 +162,7 @@ function ClientSheet({ id, onClose }: { id: string | null; onClose: () => void }
   const [tab, setTab] = useState<'overview' | 'contacts'>('overview');
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [editing, setEditing] = useState(false);
 
   async function onDelete() {
     if (!id || !confirm('Soft-delete this client?')) return;
@@ -186,9 +187,14 @@ function ClientSheet({ id, onClose }: { id: string | null; onClose: () => void }
       subtitle={data?.legalName}
       footer={
         <div className="flex items-center justify-between">
-          {can(PERMISSIONS.CLIENT_DELETE) ? (
-            <Button variant="danger" size="sm" icon={Trash2} loading={del.isPending} onClick={() => void onDelete()}>Delete</Button>
-          ) : <span />}
+          <div className="flex items-center gap-2">
+            {can(PERMISSIONS.CLIENT_DELETE) && (
+              <Button variant="danger" size="sm" icon={Trash2} loading={del.isPending} onClick={() => void onDelete()}>Delete</Button>
+            )}
+            {can(PERMISSIONS.CLIENT_EDIT) && (
+              <Button variant="secondary" size="sm" icon={Pencil} onClick={() => setEditing(true)}>Edit</Button>
+            )}
+          </div>
           <Button variant="secondary" size="sm" onClick={onClose}>Close</Button>
         </div>
       }
@@ -245,6 +251,66 @@ function ClientSheet({ id, onClose }: { id: string | null; onClose: () => void }
           )}
         </>
       )}
+      {editing && data && <EditClientModal client={data} onClose={() => setEditing(false)} />}
     </Sheet>
+  );
+}
+
+function EditClientModal({ client, onClose }: { client: ClientDetail; onClose: () => void }) {
+  const update = useUpdateClient(client.id);
+  const toast = useToast();
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    legalName: client.legalName, displayName: client.displayName, gstin: client.gstin ?? '',
+    stateCode: client.stateCode,
+    line1: client.billingAddress.line1, city: client.billingAddress.city,
+    state: client.billingAddress.state, pincode: client.billingAddress.pincode,
+    email: client.email ?? '', phone: client.phone ?? '', status: client.status,
+  });
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const input: UpdateClientInput = {
+      legalName: form.legalName, displayName: form.displayName,
+      gstin: form.gstin || undefined, stateCode: form.stateCode,
+      billingAddress: { line1: form.line1, city: form.city, state: form.state, pincode: form.pincode },
+      email: form.email || undefined, phone: form.phone || undefined, status: form.status,
+    };
+    try {
+      await update.mutateAsync(input);
+      toast.success('Client updated', form.displayName);
+      onClose();
+    } catch (e2) {
+      setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to update client');
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Edit client" description="Update the client profile and GST details." size="lg">
+      <form onSubmit={submit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Input label="Legal name" value={form.legalName} onChange={set('legalName')} required />
+          <Input label="Display name" value={form.displayName} onChange={set('displayName')} required />
+          <Input label="GSTIN" hint="Optional" value={form.gstin} onChange={set('gstin')} placeholder="37ABCDE1234F1Z5" />
+          <Input label="State code" value={form.stateCode} onChange={set('stateCode')} required />
+          <Input label="Address line 1" value={form.line1} onChange={set('line1')} required />
+          <Input label="City" value={form.city} onChange={set('city')} required />
+          <Input label="State" value={form.state} onChange={set('state')} required />
+          <Input label="PIN code" value={form.pincode} onChange={set('pincode')} placeholder="520001" required />
+          <Input label="Email" hint="Optional" type="email" value={form.email} onChange={set('email')} />
+          <Input label="Phone" hint="Optional" value={form.phone} onChange={set('phone')} />
+          <Select label="Status" value={form.status} onChange={set('status')}>
+            {CLIENT_STATUS.map((s) => <option key={s} value={s}>{titleCase(s)}</option>)}
+          </Select>
+        </div>
+        {err && <ErrorNote message={err} />}
+        <div className="flex justify-end gap-2 border-t border-line pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" loading={update.isPending}>Save changes</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
