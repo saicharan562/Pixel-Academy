@@ -120,11 +120,113 @@ async function main() {
     const staffRoleId = roleByName.get('Staff')!;
     const adminUser = await prisma.user.findFirst({ where: { email: adminEmail }, select: { id: true } });
 
-    // 7a. Staff -------------------------------------------------------------
+    // 7a. Staff + role profiles --------------------------------------------
     const shivaId = uuidv7();
     const sowmyaId = uuidv7();
-    await prisma.user.create({ data: { id: shivaId, email: 'shiva@pixelacademy.local', fullName: 'Shiva (Editor / Graphic Designer)', roleId: staffRoleId, status: 'active', passwordHash: opsHash } });
-    await prisma.user.create({ data: { id: sowmyaId, email: 'sowmya@pixelacademy.local', fullName: 'Sowmya (Operations Team)', roleId: staffRoleId, status: 'active', passwordHash: opsHash } });
+    await prisma.user.create({ data: { id: shivaId, email: 'shiva@pixelacademy.local', fullName: 'Shiva', roleId: staffRoleId, status: 'active', passwordHash: opsHash } });
+    await prisma.user.create({ data: { id: sowmyaId, email: 'sowmya@pixelacademy.local', fullName: 'Sowmya', roleId: staffRoleId, status: 'active', passwordHash: opsHash } });
+
+    await prisma.staffProfile.create({
+      data: {
+        id: uuidv7(), userId: shivaId, roleTitle: 'Editor / Graphic Designer',
+        dailyTasks: [
+          'Edit reels, shorts, long-form videos',
+          'Organize and manage project files',
+          'Create flyers, social media posts, thumbnails, banners, and promotional creatives',
+          'Coordinate with Operations Team for content requirements',
+          'Deliver approved content before deadlines',
+          'Maintain brand consistency across all designs',
+        ],
+        weeklyTasks: [
+          'Complete all assigned video edits before deadlines',
+          'Edit and deliver long-form videos',
+          'Design all requested flyers and creatives',
+          'Create thumbnails for YouTube and webinars',
+          'Coordinate with Operations Team for upcoming requirements',
+          'Organize project folders and maintain file backups',
+          'Implement revisions within agreed timeline',
+          'Maintain brand consistency across all content',
+          'Provide weekly project status updates',
+        ],
+        kpis: [
+          '95%+ On-Time Delivery Rate',
+          'Less than 2 delayed projects per month',
+          '100% creative requests completed on time',
+          '90%+ approval rate in first review',
+          'Zero missed creative requirements',
+          '100% file organization compliance',
+          'Revisions completed within 24 hours',
+          'Brand guideline adherence above 95%',
+          'Weekly report submitted on time',
+        ],
+        deliverables: [
+          'Edited Reels', 'Long-form Videos', 'Instagram Flyers', 'YouTube Thumbnails',
+          'Social Media Creatives', 'Organized Drive Folders', 'Updated Creative Assets',
+          'Branded Marketing Materials', 'Progress Report',
+        ],
+      },
+    });
+    await prisma.staffProfile.create({
+      data: {
+        id: uuidv7(), userId: sowmyaId, roleTitle: 'Operations Team',
+        dailyTasks: [
+          'Make 100 outbound calls to leads and prospects',
+          'Follow up with hot, warm, and old leads',
+          'Update CRM and Lead Tracker after every call',
+          'Respond to WhatsApp, Instagram, and email inquiries',
+          'Coordinate with the Editor/Designer for pending creatives',
+          'Collect content requirements from clients/coaches',
+          'Ensure content pipeline is maintained at least 10 days ahead',
+          'Review daily content scheduled for posting',
+          'Schedule and publish posts across all platforms',
+          'Follow up with team members on pending tasks and deadlines',
+          'Conduct daily team check-ins and task updates',
+          'Track project progress and update trackers',
+          'Send reminders for webinars, workshops, or events',
+          'Handle sales calls and close interested prospects',
+          'Follow up on pending payments and invoices',
+          'Resolve client queries and support requests',
+          'Maintain client communication and provide updates',
+          'Check content quality before publishing',
+          'Update daily sales and operations reports',
+          'Submit end-of-day work summary',
+        ],
+        weeklyTasks: [
+          'Make outbound calls to leads and prospects',
+          'Follow up with interested leads',
+          'Coordinate with creative team for content requirements',
+          'Plan and schedule content at least 10 days in advance',
+          'Coordinate with editor, designer, and marketing team',
+          'Publish and schedule content across platforms',
+          'Track lead inquiries and responses',
+          'Handle webinar/event registrations and reminders',
+          'Conduct sales calls and close prospects',
+          'Maintain CRM and update lead status daily',
+          'Manage client communication and updates',
+          'Prepare weekly performance reports',
+        ],
+        kpis: [
+          '100 calls per day',
+          '90% follow-ups completed on time',
+          'Zero content delays due to coordination gaps',
+          'Maintain 10-day content buffer',
+          'Daily task completion rate above 95%',
+          '100% scheduled posts published on time',
+          'Response time under 2 hours',
+          '90% reminder completion rate',
+          'Monthly sales target achievement',
+          '100% CRM accuracy',
+          'Client satisfaction score above 90%',
+          'Reports submitted on time',
+        ],
+        deliverables: [
+          'Call Reports', 'Follow-up Tracker', 'Content Request Tracker', 'Content Calendar',
+          'Team Coordination Updates', 'Published Content', 'Lead Management Report',
+          'Registration Reports', 'Closed Sales', 'Updated CRM', 'Client Update Reports',
+          'Weekly Operations Report',
+        ],
+      },
+    });
 
     // 7b. Clients (each client tab in the sheet → a Client) ----------------
     const addr = (city: string) => ({ line1: '—', city, state: 'India', pincode: '000000' });

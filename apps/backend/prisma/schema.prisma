@@ -94,6 +94,7 @@ model User {
   auditLogs         AuditLog[]
   aiLogs            AiInteractionLog[]
   salaryRecords     SalaryRecord[]
+  staffProfile      StaffProfile?
 
   @@index([roleId], name: "idx_users_role_id")
   @@index([clientId], name: "idx_users_client_id")
@@ -764,4 +765,21 @@ model SalaryRecord {
 
   @@unique([userId, month], name: "uq_salary_user_month")
   @@map("salary_records")
+}
+
+/// Staff role profile — job description: daily/weekly tasks, KPIs, deliverables.
+model StaffProfile {
+  id           String   @id @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  roleTitle    String   @map("role_title")
+  dailyTasks   String[] @map("daily_tasks")
+  weeklyTasks  String[] @map("weekly_tasks")
+  kpis         String[]
+  deliverables String[]
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_profiles")
 }
