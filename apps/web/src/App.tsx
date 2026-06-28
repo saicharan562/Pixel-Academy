@@ -15,6 +15,10 @@ const ClientsPage = lazy(() => import('./pages/ClientsPage.js').then((m) => ({ d
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage.js').then((m) => ({ default: m.ProjectsPage })));
 const TasksPage = lazy(() => import('./pages/TasksPage.js').then((m) => ({ default: m.TasksPage })));
 const TimesheetsPage = lazy(() => import('./pages/TimesheetsPage.js').then((m) => ({ default: m.TimesheetsPage })));
+const AttendancePage = lazy(() => import('./pages/AttendancePage.js').then((m) => ({ default: m.AttendancePage })));
+const LeavesPage = lazy(() => import('./pages/LeavesPage.js').then((m) => ({ default: m.LeavesPage })));
+const InvoicesPage = lazy(() => import('./pages/InvoicesPage.js').then((m) => ({ default: m.InvoicesPage })));
+const UsersPage = lazy(() => import('./pages/UsersPage.js').then((m) => ({ default: m.UsersPage })));
 const StylePage = lazy(() => import('./pages/StylePage.js').then((m) => ({ default: m.StylePage })));
 
 export function App() {
@@ -44,10 +48,10 @@ export function App() {
           <Route path="projects" element={<ProtectedRoute permission={PERMISSIONS.PROJECT_VIEW}><ProjectsPage /></ProtectedRoute>} />
           <Route path="tasks" element={<ProtectedRoute permission={PERMISSIONS.TASK_VIEW}><TasksPage /></ProtectedRoute>} />
           <Route path="timesheets" element={<ProtectedRoute permission={PERMISSIONS.TIMESHEET_VIEW}><TimesheetsPage /></ProtectedRoute>} />
-          <Route path="attendance" element={<ProtectedRoute permission={PERMISSIONS.ATTENDANCE_VIEW}><PlaceholderPage title="Attendance" /></ProtectedRoute>} />
-          <Route path="leaves" element={<ProtectedRoute permission={PERMISSIONS.LEAVE_VIEW}><PlaceholderPage title="Leaves" /></ProtectedRoute>} />
-          <Route path="invoices" element={<ProtectedRoute permission={PERMISSIONS.INVOICE_VIEW}><PlaceholderPage title="Invoices" /></ProtectedRoute>} />
-          <Route path="users" element={<ProtectedRoute permission={PERMISSIONS.USER_VIEW}><PlaceholderPage title="Users" /></ProtectedRoute>} />
+          <Route path="attendance" element={<ProtectedRoute permission={PERMISSIONS.ATTENDANCE_VIEW}><AttendancePage /></ProtectedRoute>} />
+          <Route path="leaves" element={<ProtectedRoute permission={PERMISSIONS.LEAVE_VIEW}><LeavesPage /></ProtectedRoute>} />
+          <Route path="invoices" element={<ProtectedRoute permission={PERMISSIONS.INVOICE_VIEW}><InvoicesPage /></ProtectedRoute>} />
+          <Route path="users" element={<ProtectedRoute permission={PERMISSIONS.USER_VIEW}><UsersPage /></ProtectedRoute>} />
           <Route path="style" element={<StylePage />} />
         </Route>
 
