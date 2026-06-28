@@ -1,7 +1,7 @@
 import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { Handshake, Plus } from 'lucide-react';
-import { DEAL_STAGE, PERMISSIONS, type DealStage, type CreateDealInput } from '@pixel/shared';
+import { Handshake, Plus, Trash2 } from 'lucide-react';
+import { DEAL_STAGE, PERMISSIONS, type DealStage, type CreateDealInput, type UpdateDealInput } from '@pixel/shared';
 import { useAuth } from '../lib/auth.js';
 import { ApiRequestError } from '../lib/api.js';
 import { useToast } from '../components/ui/toast.js';
@@ -9,7 +9,7 @@ import { titleCase, formatINR } from '../lib/format.js';
 import {
   Badge, Button, EmptyState, ErrorNote, Input, Modal, PageHeader, Select, type Tone,
 } from '../components/ui.js';
-import { useDeals, useCreateDeal, useUpdateDeal, type DealRow } from '../features/deals/api.js';
+import { useDeals, useCreateDeal, useUpdateDeal, useDeleteDeal, type DealRow } from '../features/deals/api.js';
 import { useClientOptions } from '../features/lookups/api.js';
 import { cn } from '../lib/utils.js';
 
@@ -26,6 +26,7 @@ export function DealsPage() {
   const { can } = useAuth();
   const toast = useToast();
   const [creating, setCreating] = useState(false);
+  const [selected, setSelected] = useState<DealRow | null>(null);
   const { data, isLoading, error } = useDeals({});
   const update = useUpdateDeal();
   const rows = data?.data ?? [];
@@ -78,10 +79,11 @@ export function DealsPage() {
           action={can(PERMISSIONS.DEAL_CREATE) ? <Button icon={Plus} onClick={() => setCreating(true)}>New deal</Button> : undefined}
         />
       ) : (
-        <Board grouped={grouped} canDrag={can(PERMISSIONS.DEAL_EDIT)} onDrop={onDrop} />
+        <Board grouped={grouped} canDrag={can(PERMISSIONS.DEAL_EDIT)} onDrop={onDrop} onOpen={setSelected} />
       )}
 
       {creating && <CreateDealModal onClose={() => setCreating(false)} />}
+      {selected && <EditDealModal deal={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
@@ -99,10 +101,11 @@ function SummaryTile({ label, value, tone }: { label: string; value: string; ton
 }
 
 function Board({
-  grouped, canDrag, onDrop,
+  grouped, canDrag, onDrop, onOpen,
 }: {
   grouped: Record<DealStage, DealRow[]>; canDrag: boolean;
   onDrop: (id: string, from: DealStage, to: DealStage) => void;
+  onOpen: (deal: DealRow) => void;
 }) {
   const [over, setOver] = useState<DealStage | null>(null);
 
@@ -139,6 +142,7 @@ function Board({
               {grouped[s].map((d) => (
                 <motion.div
                   layout key={d.id} draggable={canDrag}
+                  onClick={() => onOpen(d)}
                   onDragStart={(e) => {
                     const dt = (e as unknown as DragEvent).dataTransfer;
                     dt.setData('text/deal-id', d.id);
@@ -146,8 +150,8 @@ function Board({
                     dt.effectAllowed = 'move';
                   }}
                   className={cn(
-                    'rounded-lg border border-line bg-surface-2 p-3 shadow-xs transition-colors duration-1 hover:border-line-strong',
-                    canDrag && 'cursor-grab active:cursor-grabbing',
+                    'cursor-pointer rounded-lg border border-line bg-surface-2 p-3 shadow-xs transition-colors duration-1 hover:border-line-strong',
+                    canDrag && 'active:cursor-grabbing',
                   )}
                 >
                   <p className="text-sm font-medium text-content">{d.title}</p>
@@ -208,6 +212,66 @@ function CreateDealModal({ onClose }: { onClose: () => void }) {
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={create.isPending}>Create deal</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditDealModal({ deal, onClose }: { deal: DealRow; onClose: () => void }) {
+  const { can } = useAuth();
+  const update = useUpdateDeal();
+  const del = useDeleteDeal();
+  const toast = useToast();
+  const clients = useClientOptions();
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    title: deal.title, clientId: deal.clientId ?? '', stage: deal.stage,
+    valueInr: deal.valueInr ?? '', probability: deal.probability != null ? String(deal.probability) : '',
+  });
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const input: UpdateDealInput = {
+      title: form.title, stage: form.stage, clientId: form.clientId || undefined,
+      valueInr: form.valueInr ? Number(form.valueInr) : undefined,
+      probability: form.probability ? Number(form.probability) : undefined,
+    };
+    try { await update.mutateAsync({ id: deal.id, input }); toast.success('Deal updated'); onClose(); }
+    catch (e2) { setErr(e2 instanceof ApiRequestError ? e2.displayMessage : 'Failed to update deal'); }
+  }
+  async function onDelete() {
+    if (!confirm('Delete this deal?')) return;
+    try { await del.mutateAsync(deal.id); toast.success('Deal deleted'); onClose(); }
+    catch (e) { toast.error('Delete failed', e instanceof ApiRequestError ? e.displayMessage : undefined); }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Edit deal" description="Update the opportunity.">
+      <form onSubmit={submit} className="space-y-3.5">
+        <Input label="Title" value={form.title} onChange={set('title')} required />
+        <Select label="Client" hint="Optional" value={form.clientId} onChange={set('clientId')}>
+          <option value="">No client</option>
+          {clients.data?.data.map((c) => <option key={c.id} value={c.id}>{c.displayName}</option>)}
+        </Select>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Select label="Stage" value={form.stage} onChange={set('stage')}>
+            {DEAL_STAGE.map((s) => <option key={s} value={s}>{titleCase(s)}</option>)}
+          </Select>
+          <Input label="Value (₹)" type="number" min={0} value={form.valueInr} onChange={set('valueInr')} placeholder="0" />
+          <Input label="Probability %" type="number" min={0} max={100} value={form.probability} onChange={set('probability')} placeholder="0" />
+        </div>
+        {err && <ErrorNote message={err} />}
+        <div className="flex items-center justify-between border-t border-line pt-4">
+          {can(PERMISSIONS.DEAL_DELETE) ? (
+            <Button type="button" variant="danger" icon={Trash2} loading={del.isPending} onClick={() => void onDelete()}>Delete</Button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" loading={update.isPending}>Save changes</Button>
+          </div>
         </div>
       </form>
     </Modal>

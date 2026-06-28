@@ -42,3 +42,11 @@ export function useUpdateDeal() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['deals'] }),
   });
 }
+
+export function useDeleteDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.del<void>(`/deals/${id}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['deals'] }),
+  });
+}
