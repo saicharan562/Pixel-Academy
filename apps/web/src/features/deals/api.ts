@@ -23,7 +23,7 @@ interface Page<T> { data: T[]; nextCursor: string | null }
 export function useDeals(params: { stage?: DealStage }) {
   const qs = new URLSearchParams();
   if (params.stage) qs.set('stage', params.stage);
-  qs.set('limit', '200');
+  qs.set('limit', '100');
   return useQuery({ queryKey: ['deals', params], queryFn: () => api.get<Page<DealRow>>(`/deals?${qs}`) });
 }
 
